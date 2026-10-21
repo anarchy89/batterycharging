@@ -1,0 +1,55 @@
+#!/bin/bash
+# batterycharging off  -> stop charging: freeze at current %, follow it down, never charge up
+# batterycharging on   -> resume charging: stop holding and restore your previous charge limit
+D=com.apple.smartcharging.topoffprotection
+DIR="/Library/Application Support/batterycharging"
+PID="$DIR/pid"; SAVED="$DIR/saved"
+
+pct()     { pmset -g batt | grep -Eo '[0-9]+%' | head -1 | tr -d '%'; }
+running() { [[ -f "$PID" ]] && ps -p "$(cat "$PID")" >/dev/null 2>&1; }
+setlim()  {   # runs as root
+  defaults write $D MCLFeatureState -int 1
+  defaults write $D mclLimitValue -int "$1"
+  notifyutil -p com.apple.smartcharging.defaultschanged
+}
+
+case "$1" in
+  off)
+    running && { echo "Already holding."; exit 0; }
+    sudo -v || exit 1
+    sudo nohup "$0" _loop >/dev/null 2>&1 &
+    echo "Charging off: holding at $(pct)%. Charge can only go down until 'batterycharging on'."
+    ;;
+  on)
+    sudo "$0" _restore && echo "Charging on: previous charge limit restored."
+    ;;
+  _loop)      # root: save original once, then ratchet down only
+    mkdir -p "$DIR"; echo $$ > "$PID"
+    [[ -f "$SAVED" ]] || echo "$(defaults read $D MCLFeatureState 2>/dev/null || echo none) \
+$(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
+    hold=$(pct); [[ -z "$hold" ]] && exit 1
+    setlim "$hold"
+    while sleep 60; do
+      p=$(pct)
+      if [[ -n "$p" ]] && (( p < hold )); then hold=$p; setlim "$hold"; fi
+    done
+    ;;
+  _restore)   # root
+    [[ -f "$PID" ]] && kill "$(cat "$PID")" 2>/dev/null; rm -f "$PID"
+    if [[ ! -f "$SAVED" ]]; then
+      echo "No hold was active; charge limit left unchanged."; exit 1
+    fi
+    read -r st lim < "$SAVED"
+    if [[ "$st" == 1 ]]; then
+      setlim "$lim"
+    elif [[ "$st" == none ]]; then   # charge limit was never set on this Mac: remove our keys
+      defaults delete $D MCLFeatureState 2>/dev/null
+      defaults delete $D mclLimitValue 2>/dev/null
+      notifyutil -p com.apple.smartcharging.defaultschanged
+    else
+      setlim 100
+    fi
+    rm -f "$SAVED"
+    ;;
+  *) echo "usage: batterycharging off|on"; exit 1 ;;
+esac
