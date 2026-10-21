@@ -10,7 +10,7 @@ batterycharging on    # resume charging: restore your previous charge limit
 > [!NOTE]
 > On **macOS 26.6 and earlier**, use [actuallymentor/battery](https://github.com/actuallymentor/battery) instead. It has more features and works well on those versions.
 
-## Why this exists
+## Why I made this
 
 `battery` and similar tools stop charging by writing the SMC key `CHTE`. The firmware that ships with macOS 27 and the macOS 26.7 update **doesn't have that key anymore**. The SMC reports it as not found, so every write fails.
 
@@ -23,15 +23,16 @@ Apple's replacement, a firmware charge-limit interface (`bfD0`/`bfE0`/`bfF0`), r
 | `MCLFeatureState` (1 = on) | `com.apple.smartcharging.topoffprotection` in `/var/root/Library/Preferences` |
 | `mclLimitValue` (percent) | same domain |
 
-After writing them, the script posts the Darwin notification `com.apple.smartcharging.defaultschanged` so the system reloads its settings. **The firmware itself then stops charging at the limit**, including during sleep.
+After writing them, the script posts the Darwin notification `com.apple.smartcharging.defaultschanged` so the system reloads its settings. **The firmware itself then stops charging at the limit**, including during sleep. Basically it will disable charging, so that if it drops to 79 it will stay there, if it drops to 78 it will stay there. I made this because I was worried about it always force charging back to 80%; wearing the battery out.
 
 ### How `off` works
 
 1. Saves your current charge-limit settings (only once, so you can get them back later).
-2. Sets the charge limit to your **current battery %**.
+2. Sets the charge limit to your **current battery %**. 
 3. Starts a small background loop as root. Every 60 seconds it checks the battery and, if the level has dropped, **lowers the limit to match**. The limit only ever goes down, so the Mac runs on wall power and never charges back up.
+4. You will notice the charging cable light should turn green (means it thinks its fully charged), if you look for the icon at the top right, it will say power source power adapter and if you open settings / battery it will say Charged to 0% limit.
 
-`on` stops the loop and restores the settings it saved.
+`on` Stops the loop and restores the settings it saved (it will restore it to your previous limit of 80,85,etc.)
 
 ## Requirements
 
