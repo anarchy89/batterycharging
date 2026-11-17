@@ -4,6 +4,7 @@ A tiny bash script to **stop your MacBook from charging** while it's plugged in,
 
 ```bash
 batterycharging off   # stop charging: hold at the current %, never charge up
+batterycharging to 65 # charge up to 65%, then hold there just like 'off'
 batterycharging on    # resume charging: restore your previous charge limit
 ```
 
@@ -31,6 +32,10 @@ After writing them, the script posts the Darwin notification `com.apple.smartcha
 2. Sets the charge limit to your **current battery %**. 
 3. Starts a small background loop as root. Every 60 seconds it checks the battery and, if the level has dropped, **lowers the limit to match**. The limit only ever goes down, so the Mac runs on wall power and never charges back up.
 4. You will notice the charging cable light should turn green (means it thinks its fully charged), if you look for the icon at the top right, it will say power source power adapter and if you open settings / battery it will say Charged to 0% limit.
+
+### How `to N` works
+
+For when the battery has dropped lower than you'd like (say 30%) and you want to top it up without going back to a full charge. `batterycharging to 65` sets the charge limit to 65%, so the Mac charges up to that level and the firmware stops it there. The background loop checks every 60 seconds, and once the target is reached it switches to the same hold as `off`: the limit only follows the battery down. It works whether or not a hold is already active (it replaces the running one), and if you're already at or above N it just holds at the current level.
 
 `on` Stops the loop and restores the settings it saved (it will restore it to your previous limit of 80,85,etc.)
 

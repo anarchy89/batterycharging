@@ -1,5 +1,6 @@
 #!/bin/bash
 # batterycharging off  -> stop charging: freeze at current %, follow it down, never charge up
+# batterycharging to N -> charge up to N%, then hold there exactly like 'off'
 # batterycharging on   -> resume charging: stop holding and restore your previous charge limit
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -20,14 +21,38 @@ case "$1" in
     sudo nohup "$0" _loop >/dev/null 2>&1 &
     echo "Charging off: holding at $(pct)%. Charge can only go down until 'batterycharging on'."
     ;;
+  to)
+    [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= 1 && $2 <= 100 )) || { echo "usage: batterycharging to <1-100>"; exit 1; }
+    sudo -v || exit 1
+    sudo nohup "$0" _loop "$2" >/dev/null 2>&1 &
+    if (( $(pct) < $2 )); then
+      echo "Charging to $2%, then holding. Charge can only go down after that until 'batterycharging on'."
+    else
+      echo "Already at $(pct)% (>= $2%): holding here. Charge can only go down until 'batterycharging on'."
+    fi
+    ;;
   on)
     sudo "$0" _restore && echo "Charging on: previous charge limit restored."
     ;;
-  _loop)      # root: save original once, then ratchet down only
-    mkdir -p "$DIR"; echo $$ > "$PID"
+  _loop)      # root: save original once, optionally charge up to $2, then ratchet down only
+    mkdir -p "$DIR"
+    [[ -f "$PID" ]] && kill "$(cat "$PID")" 2>/dev/null   # replace any running hold
+    echo $$ > "$PID"
     [[ -f "$SAVED" ]] || echo "$(defaults read $D MCLFeatureState 2>/dev/null || echo none) \
 $(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
     hold=$(pct); [[ -z "$hold" ]] && exit 1
+    if [[ -n "$2" ]] && (( hold < $2 )); then
+      setlim "$2"            # firmware charges up to the target and stops there
+      while sleep 60; do
+        p=$(pct); [[ -z "$p" ]] && continue
+        (( p >= $2 )) && break
+        # firmware may settle a point or two short of the limit: treat that as done
+        if (( p >= $2 - 2 )) && pmset -g batt | grep -q "AC Power" \
+           && ! pmset -g batt | grep -q "; charging"; then break; fi
+      done
+      hold=$(pct); [[ -z "$hold" ]] && hold=$2
+      (( hold > $2 )) && hold=$2
+    fi
     setlim "$hold"
     while sleep 60; do
       p=$(pct)
@@ -51,5 +76,5 @@ $(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
     fi
     rm -f "$SAVED"
     ;;
-  *) echo "usage: batterycharging off|on"; exit 1 ;;
+  *) echo "usage: batterycharging off|on|to <percent>"; exit 1 ;;
 esac
