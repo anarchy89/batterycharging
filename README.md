@@ -37,6 +37,9 @@ After writing them, the script posts the Darwin notification `com.apple.smartcha
 
 For when the battery has dropped lower than you'd like (say 30%) and you want to top it up without going back to a full charge. `batterycharging to 65` sets the charge limit to 65%, so the Mac charges up to that level and the firmware stops it there. The background loop checks every 60 seconds and once the target is reached it switches to the same hold as `off`: the limit only follows the battery down. It works whether or not a hold is already active (it replaces the running one) and if you're already at or above N it just holds at the current level.
 
+- **Stopping just short of the target:** if the firmware stops a point or two below the target (say 64% for a target of 65%) and the Mac reports "not charging" on AC power, the loop treats that as done and switches to the hold. Without this, the script would wait for 65% forever and recharge every time the battery dipped.
+- **Unplugging during the charge-up:** the script stays in "charge to N" mode and continues when you plug back in.
+
 `on` Stops the loop and restores the settings it saved (it will restore it to your previous limit of 80,85,etc.)
 
 ## Requirements
