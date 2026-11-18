@@ -7,7 +7,7 @@
 # batterycharging auto off -> turn that off again
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.0
+VERSION=1.0.1
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -22,7 +22,8 @@ setlim()  {   # runs as root
 }
 warn()    {   # a hold never charges back up unless 'auto' is set
   if [[ -f "$AUTO" ]] && read -r low high < "$AUTO"; then
-    echo "Auto refill is set: below $low% it charges back up to $high%."
+    echo "Warning: auto refill is on: below $low% it charges back up to $high%, then holds again."
+    echo "To hold without refilling, run 'batterycharging auto off'."
   else
     echo "Warning: left like this, the battery will eventually drain to 0%. Run 'batterycharging on'"
     echo "when it gets low, or set 'batterycharging auto' to recharge automatically."
@@ -57,7 +58,7 @@ case "$1" in
     exit 0
     ;;
   off)
-    running && { echo "Already holding."; exit 0; }
+    running && { echo "Already holding."; [[ -f "$AUTO" ]] && warn; exit 0; }
     sudo -v || exit 1
     sudo nohup "$0" _loop >/dev/null 2>&1 &
     echo "Charging off: holding at $(pct)%. Charge can only go down until 'batterycharging on'."
@@ -76,6 +77,10 @@ case "$1" in
     ;;
   on)
     sudo "$0" _restore && echo "Charging on: previous charge limit restored."
+    if [[ -f "$AUTO" ]] && read -r low high < "$AUTO"; then
+      echo "Note: auto refill is still set ($low% -> $high%) and will apply to your next hold."
+      echo "Run 'batterycharging auto off' to remove it."
+    fi
     ;;
   auto)
     if [[ "$2" == off ]]; then

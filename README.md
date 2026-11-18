@@ -60,7 +60,8 @@ batterycharging auto off    # turn it off
 - **It only acts during a hold.** `off`, `to N` and `on` work exactly as before until you run `auto`. Once it's set, any hold started with `off` or `to N` checks the battery every 60 seconds and, if it is below the low value, does the same thing as `batterycharging to 60`. After the charge-up it goes back to holding.
 - **You can set it at any time.** A hold that is already running picks it up within a minute; there is no need to restart it.
 - **Unplugged:** if the battery drops below the low value while unplugged, the limit is raised straight away and the Mac charges to the high value when you plug back in.
-- **`on` keeps the setting.** It stops the hold as usual, and the auto setting applies again to your next hold.
+- **`on` keeps the setting.** It stops the hold as usual, and the auto setting applies again to your next hold. `on` reminds you of this.
+- **You are told when it is on.** While `auto` is set, `off` and `to N` print a warning that the refill is active, including when a hold is already running. Run `batterycharging auto off` first if you want a hold that never charges back up.
 - The low value also applies to a hold you start below it: with `auto` set, `batterycharging off` at 15% charges up to 60% and holds there.
 
 ## Requirements
