@@ -5,6 +5,10 @@
 # batterycharging auto [LOW HIGH] -> opt in (set once): while holding, if the battery falls below
 #                         LOW% (default 40), charge back up to HIGH% (default 60), then hold again
 # batterycharging auto off -> turn that off again
+# batterycharging --update  -> replace this script with the latest release, if that is newer
+# batterycharging --version -> print the version
+VERSION=1.0.0
+RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
 PID="$DIR/pid"; SAVED="$DIR/saved"; AUTO="$DIR/auto"
@@ -26,6 +30,32 @@ warn()    {   # a hold never charges back up unless 'auto' is set
 }
 
 case "$1" in
+  --version) echo "batterycharging $VERSION" ;;
+  --update)
+    url=${BATTERYCHARGING_UPDATE_URL:-$RELEASE}    # the variable is an aid for testing
+    self=$(realpath "$0" 2>/dev/null || echo "$0")
+    new=$(mktemp -t batterycharging) || exit 1
+    trap 'rm -f "$new"' EXIT
+    echo "Checking $url"
+    curl -fsSL -o "$new" "$url" || { echo "Could not download the latest release."; exit 1; }
+    read -r name latest <<< "$(bash "$new" --version 2>/dev/null)"
+    [[ "$name" == batterycharging && "$latest" =~ ^[0-9]+(\.[0-9]+)*$ ]] \
+      || { echo "The downloaded file is not a working batterycharging."; exit 1; }
+    if [[ "$latest" == "$VERSION" || "$(printf '%s\n' "$VERSION" "$latest" | sort -V | tail -1)" != "$latest" ]]; then
+      echo "batterycharging $VERSION is up to date (the latest release is $latest)."; exit 0
+    fi
+    if [[ -w "$(dirname "$self")" ]]; then
+      # write beside the old file, then swap, so there is never half a script
+      cp "$new" "$self.new" && chmod 755 "$self.new" && mv -f "$self.new" "$self" \
+        || { rm -f "$self.new"; echo "Could not replace $self"; exit 1; }
+    else
+      echo "Replacing $self needs your password."
+      sudo install -m 755 "$new" "$self" || { echo "Could not replace $self"; exit 1; }
+    fi
+    echo "Updated batterycharging $VERSION to $latest."
+    running && echo "A hold is still running the old version; restart it ('on', then 'off' or 'to N') to use the new one."
+    exit 0
+    ;;
   off)
     running && { echo "Already holding."; exit 0; }
     sudo -v || exit 1
@@ -112,5 +142,5 @@ $(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
     fi
     rm -f "$SAVED"
     ;;
-  *) echo "usage: batterycharging off|on|to <percent>|auto [<low> <high>]|auto off"; exit 1 ;;
+  *) echo "usage: batterycharging off|on|to <percent>|auto [<low> <high>]|auto off|--update|--version"; exit 1 ;;
 esac

@@ -71,8 +71,16 @@ batterycharging auto off    # turn it off
 ## Installation
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/anarchy89/batterycharging/main/setup.sh | sh
+```
+
+This downloads the latest release, checks that it runs and installs it into `/usr/local/bin`. It asks for your password if that folder needs it. Run it again at any time to reinstall.
+
+### By hand
+
+```bash
 # 1. Download the script
-curl -fsSL https://raw.githubusercontent.com/anarchy89/batterycharging/main/batterycharging -o batterycharging
+curl -fsSL https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging -o batterycharging
 
 # 2. Make it executable
 chmod +x batterycharging
@@ -96,6 +104,14 @@ cd batterycharging
 chmod +x batterycharging
 sudo cp batterycharging /usr/local/bin/
 ```
+
+### Update
+
+```bash
+batterycharging --update
+```
+
+This checks the latest release and replaces the installed script if the release is newer. It asks for your password when the folder needs it. A hold that is already running keeps using the old version until you restart it (`on`, then `off` or `to N`). `batterycharging --version` shows what you have.
 
 ## Usage
 
@@ -123,6 +139,7 @@ pmset -g batt
 - **System Settings:** while a hold is active, *Battery → Charge Limit* may show an odd value, because the script sets limits below 80%. Don't change it there while holding; use `batterycharging on` instead.
 - **Restoring:** `on` restores your previous charge limit (for example 80%, 90%, 95%). If Charge Limit had never been set on your Mac, `on` removes the settings the script added, so it's back to how it was.
 - State files are kept in `/Library/Application Support/batterycharging/`.
+- **The download is not signed.** `setup.sh` and `batterycharging --update` fetch the script from this repository's releases over HTTPS and trust what they get. Each release lists the SHA-256 of its script so you can compare: `shasum -a 256 /usr/local/bin/batterycharging`. The script runs parts of itself as root, so read it first if you prefer; it is short.
 - Apple can change these internals in any update.
 
 ## Uninstall
