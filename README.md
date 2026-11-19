@@ -1,5 +1,86 @@
 # batterycharging
 
+## Requirements
+
+- An Apple Silicon MacBook on **macOS 27+** or **macOS 26.7+**
+- Admin rights (the script uses `sudo`)
+
+## Installation
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/anarchy89/batterycharging/main/setup.sh | sh
+```
+
+This downloads the latest release, checks that it runs and installs it into `/usr/local/bin`. It asks for your password if that folder needs it. Run it again at any time to reinstall.
+
+### By hand
+
+```bash
+# 1. Download the script
+curl -fsSL https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging -o batterycharging
+
+# 2. Make it executable
+chmod +x batterycharging
+
+# 3. Move it somewhere on your PATH
+sudo mkdir -p /usr/local/bin
+sudo mv batterycharging /usr/local/bin/
+```
+
+Check that it installed:
+
+```bash
+which batterycharging   # -> /usr/local/bin/batterycharging
+```
+
+You can also clone the repo and copy the file:
+
+```bash
+git clone https://github.com/anarchy89/batterycharging.git
+cd batterycharging
+chmod +x batterycharging
+sudo cp batterycharging /usr/local/bin/
+```
+
+### Update
+
+```bash
+batterycharging --update
+```
+
+This checks the latest release and replaces the installed script if the release is newer. It asks for your password when the folder needs it.
+
+A hold that is already running keeps using the old version until it is restarted. After updating, `--update` tells you so and offers to do it, showing the command it will run:
+
+```
+Updated batterycharging 1.0.2 to 1.0.3.
+A hold is still running the old version.
+Restart it now with the new one? This runs: batterycharging restart [Y/n]
+```
+
+`batterycharging restart` swaps the running hold for one from the installed script. The charge limit is not restored in between, so nothing charges, and a `to N` that is still charging up keeps its target. Answer `n` to leave the hold alone and run `batterycharging restart` yourself later. Your `range` setting is kept across an update, and `maintain` carries on untouched; there is nothing to set again.
+
+`batterycharging --version` shows what you have.
+
+### Coming from a version before 1.0.8
+
+In 1.0.7 the `auto` command was renamed to `range`, and a setting made with `auto` is not carried over. If you installed before 1.0.8, do not use `--update` for this one step. Turn charging back on, remove everything and install again:
+
+```bash
+batterycharging on                                           # 1. stop any hold and restore your charge limit
+sudo rm /usr/local/bin/batterycharging                       # 2. remove the old script...
+sudo rm -rf "/Library/Application Support/batterycharging"   #    ...and its saved settings
+curl -fsSL https://raw.githubusercontent.com/anarchy89/batterycharging/main/setup.sh | sh   # 3. install the latest version
+```
+
+Then set it up again: `batterycharging off` or `batterycharging to N` to start a hold, and `batterycharging range` if you want the battery kept in a range.
+
+Run `batterycharging on` first, as shown. If the script is removed while a hold is active, the hold keeps running and the low charge limit stays in place.
+
+`batterycharging --version` shows which version you have; a copy too old to know that command prints a usage line instead, and is also older than 1.0.8. From 1.0.8 onward, `batterycharging --update` is all you need for future releases.
+
+## Quick Start
+
 A tiny bash script to **stop your MacBook from charging** while it's plugged in and **keep the battery in a range you choose**, for **macOS 27+** (and macOS 26.7+), where older tools no longer work.
 
 ```bash
@@ -173,85 +254,6 @@ So after `batterycharging off` the light turns green even though the battery is 
 So allow two or three minutes before deciding a command has not worked. During that time the light may already be green while the battery is still charging. `batterycharging dischargecheck` shows what the battery is really doing.
 
 USB-C chargers have no light; use `batterycharging status` instead, which shows `not charging` or `charging` on its Battery line.
-
-## Requirements
-
-- An Apple Silicon MacBook on **macOS 27+** or **macOS 26.7+**
-- Admin rights (the script uses `sudo`)
-
-## Installation
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/anarchy89/batterycharging/main/setup.sh | sh
-```
-
-This downloads the latest release, checks that it runs and installs it into `/usr/local/bin`. It asks for your password if that folder needs it. Run it again at any time to reinstall.
-
-### By hand
-
-```bash
-# 1. Download the script
-curl -fsSL https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging -o batterycharging
-
-# 2. Make it executable
-chmod +x batterycharging
-
-# 3. Move it somewhere on your PATH
-sudo mkdir -p /usr/local/bin
-sudo mv batterycharging /usr/local/bin/
-```
-
-Check that it installed:
-
-```bash
-which batterycharging   # -> /usr/local/bin/batterycharging
-```
-
-You can also clone the repo and copy the file:
-
-```bash
-git clone https://github.com/anarchy89/batterycharging.git
-cd batterycharging
-chmod +x batterycharging
-sudo cp batterycharging /usr/local/bin/
-```
-
-### Update
-
-```bash
-batterycharging --update
-```
-
-This checks the latest release and replaces the installed script if the release is newer. It asks for your password when the folder needs it.
-
-A hold that is already running keeps using the old version until it is restarted. After updating, `--update` tells you so and offers to do it, showing the command it will run:
-
-```
-Updated batterycharging 1.0.2 to 1.0.3.
-A hold is still running the old version.
-Restart it now with the new one? This runs: batterycharging restart [Y/n]
-```
-
-`batterycharging restart` swaps the running hold for one from the installed script. The charge limit is not restored in between, so nothing charges, and a `to N` that is still charging up keeps its target. Answer `n` to leave the hold alone and run `batterycharging restart` yourself later. Your `range` setting is kept across an update, and `maintain` carries on untouched; there is nothing to set again.
-
-`batterycharging --version` shows what you have.
-
-### Coming from a version before 1.0.8
-
-In 1.0.7 the `auto` command was renamed to `range`, and a setting made with `auto` is not carried over. If you installed before 1.0.8, do not use `--update` for this one step. Turn charging back on, remove everything and install again:
-
-```bash
-batterycharging on                                           # 1. stop any hold and restore your charge limit
-sudo rm /usr/local/bin/batterycharging                       # 2. remove the old script...
-sudo rm -rf "/Library/Application Support/batterycharging"   #    ...and its saved settings
-curl -fsSL https://raw.githubusercontent.com/anarchy89/batterycharging/main/setup.sh | sh   # 3. install the latest version
-```
-
-Then set it up again: `batterycharging off` or `batterycharging to N` to start a hold, and `batterycharging range` if you want the battery kept in a range.
-
-Run `batterycharging on` first, as shown. If the script is removed while a hold is active, the hold keeps running and the low charge limit stays in place.
-
-`batterycharging --version` shows which version you have; a copy too old to know that command prints a usage line instead, and is also older than 1.0.8. From 1.0.8 onward, `batterycharging --update` is all you need for future releases.
 
 ## Usage
 
