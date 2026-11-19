@@ -8,6 +8,8 @@ batterycharging to 65 # charge up to 65%, then hold there just like 'off'
 batterycharging on    # resume charging: restore your previous charge limit
 
 batterycharging auto  # optional, set once: while holding, below 40% charge back up to 60%
+batterycharging status # what is set right now and what to run next
+batterycharging restart # restart a running hold after an update; the charge limit stays put
 ```
 
 > [!NOTE]
@@ -112,7 +114,19 @@ sudo cp batterycharging /usr/local/bin/
 batterycharging --update
 ```
 
-This checks the latest release and replaces the installed script if the release is newer. It asks for your password when the folder needs it. A hold that is already running keeps using the old version until you restart it (`on`, then `off` or `to N`). `batterycharging --version` shows what you have.
+This checks the latest release and replaces the installed script if the release is newer. It asks for your password when the folder needs it.
+
+A hold that is already running keeps using the old version until it is restarted. After updating, `--update` tells you so and offers to do it, showing the command it will run:
+
+```
+Updated batterycharging 1.0.2 to 1.0.3.
+A hold is still running the old version.
+Restart it now with the new one? This runs: batterycharging restart [Y/n]
+```
+
+`batterycharging restart` swaps the running hold for one from the installed script. The charge limit is not restored in between, so nothing charges, and a `to N` that is still charging up keeps its target. Answer `n` to leave the hold alone and run `batterycharging restart` yourself later. Your `auto` setting is kept across an update; there is nothing to set again.
+
+`batterycharging --version` shows what you have.
 
 ## Usage
 
@@ -128,6 +142,25 @@ batterycharging on
 ```
 
 To check what's set right now:
+
+```bash
+batterycharging status
+# batterycharging 1.0.2
+#   Battery:       58%, on AC Power, not charging
+#   Charge limit:  58%
+#   Hold:          on, the limit follows the battery down and never charges back up
+#   Auto refill:   on, below 40% a hold charges back up to 60%
+#   'on' restores: 80% charge limit
+#
+# What you can do:
+#   batterycharging on         back to normal charging (80% charge limit)
+#   batterycharging to N       charge up to N% now, then hold there
+#   batterycharging auto off   stop the refill, so the hold only ever goes down
+```
+
+It shows the battery, the charge limit that is set, whether a hold is running, whether `auto` is on and which commands make sense next, including how to get back to normal charging. It asks for your password because the charge limit is stored in root's preferences. It also tells you when a hold has stopped at a restart but its limit is still in place.
+
+The raw values it reads are:
 
 ```bash
 sudo defaults read com.apple.smartcharging.topoffprotection

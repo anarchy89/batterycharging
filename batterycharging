@@ -5,9 +5,11 @@
 # batterycharging auto [LOW HIGH] -> opt in (set once): while holding, if the battery falls below
 #                         LOW% (default 40), charge back up to HIGH% (default 60), then hold again
 # batterycharging auto off -> turn that off again
+# batterycharging restart  -> restart a running hold with this script (after an update); the limit stays put
+# batterycharging status   -> show the battery, the charge limit, the hold and auto, and what to run next
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.1
+VERSION=1.0.2
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -54,8 +56,112 @@ case "$1" in
       sudo install -m 755 "$new" "$self" || { echo "Could not replace $self"; exit 1; }
     fi
     echo "Updated batterycharging $VERSION to $latest."
-    running && echo "A hold is still running the old version; restart it ('on', then 'off' or 'to N') to use the new one."
+    if running; then
+      echo "A hold is still running the old version."
+      ans=n
+      # ask only when someone is there to answer
+      if [[ -t 0 ]]; then
+        read -r -p "Restart it now with the new one? This runs: batterycharging restart [Y/n] " ans || ans=n
+      fi
+      case "$ans" in
+        n*|N*) echo "Left as it is. To restart it later, run: batterycharging restart" ;;
+        *)     "$self" restart || echo "The restart did not work. Try again with: batterycharging restart" ;;
+      esac
+    fi
+    echo "Run 'batterycharging status' to see what is set."
     exit 0
+    ;;
+  restart)
+    running || { echo "No hold is running. Start one with 'batterycharging off' or 'to N'."; exit 1; }
+    sudo -v || exit 1
+    # a hold that is still charging up to a target has a limit well above the battery level: keep that target
+    lim=$(sudo defaults read $D mclLimitValue 2>/dev/null); p=$(pct); target=
+    [[ "$lim" =~ ^[0-9]+$ && -n "$p" ]] && (( lim - p > 2 )) && target=$lim
+    old=$(cat "$PID" 2>/dev/null)
+    sudo nohup "$0" _loop $target >/dev/null 2>&1 &
+    echo "Hold restarted with batterycharging $VERSION. What this did:"
+    echo "  - Stopped the old background loop${old:+ (process $old)} and started a new one from this script."
+    if [[ -n "$target" ]]; then
+      echo "  - Kept the charge limit at $target%: the battery is at $p%, so it carries on charging up to"
+      echo "    $target% and then holds there."
+    else
+      echo "  - Set the charge limit to $p%, the current battery level. It follows the battery down from here."
+    fi
+    if [[ -f "$SAVED" ]] && read -r st sl < "$SAVED"; then
+      [[ "$st" == 1 ]] || sl=100
+      echo "  - Did not restore your normal limit ($sl%) in between, so nothing charged. 'batterycharging on'"
+      echo "    still restores it."
+    fi
+    warn
+    ;;
+  status)
+    batt=$(pmset -g batt); p=$(pct)
+    src=$(echo "$batt" | sed -n "s/.*'\(.*\)'.*/\1/p" | head -1)
+    chg=$(echo "$batt" | sed -n 's/.*[0-9]%; \(.*\)/\1/p' | head -1 \
+          | sed -e 's/ present:.*//' -e 's/; [0-9:]* remaining//' -e 's/; (no estimate)//' -e 's/^AC attached; //')
+    echo "Reading the charge limit needs your password."
+    if sudo -v; then
+      state=$(sudo defaults read $D MCLFeatureState 2>/dev/null); lim=$(sudo defaults read $D mclLimitValue 2>/dev/null)
+      if [[ "$state" == 1 && -n "$lim" ]]; then limit="$lim%"; else limit="none (charges to 100%)"; lim=100; fi
+    else
+      limit="unknown (no admin password given)"; lim=
+    fi
+    was=
+    if [[ -f "$SAVED" ]]; then
+      read -r st sl < "$SAVED"
+      if [[ "$st" == 1 ]]; then was="$sl% charge limit"; else was="no charge limit (100%)"; fi
+    fi
+    low=; high=; [[ -f "$AUTO" ]] && read -r low high < "$AUTO"
+    echo
+    echo "batterycharging $VERSION"
+    echo "  Battery:       ${p:-?}%, on ${src:-unknown power}${chg:+, $chg}"
+    echo "  Charge limit:  $limit"
+    if running; then
+      if [[ -n "$lim" && -n "$p" ]] && (( lim - p > 2 )); then
+        echo "  Hold:          on, charging up to $lim% first, then holding"
+      else
+        echo "  Hold:          on, the limit follows the battery down and never charges back up"
+      fi
+    elif [[ -f "$SAVED" ]]; then
+      echo "  Hold:          STOPPED, but the limit it set is still in place"
+    else
+      echo "  Hold:          off, macOS charges normally"
+    fi
+    if [[ -n "$high" ]]; then
+      echo "  Auto refill:   on, below $low% a hold charges back up to $high%"
+    else
+      echo "  Auto refill:   off"
+    fi
+    [[ -n "$was" ]] && echo "  'on' restores: $was"
+    echo
+    echo "What you can do:"
+    if running; then
+      [[ "$0" -nt "$PID" ]] && \
+        echo "  ! This hold was started before the script was last updated. To use the new version," && \
+        echo "    run: batterycharging restart"
+      echo "  batterycharging on         back to normal charging${was:+ ($was)}"
+      echo "  batterycharging to N       charge up to N% now, then hold there"
+      if [[ -n "$high" ]]; then
+        echo "  batterycharging auto off   stop the refill, so the hold only ever goes down"
+      else
+        echo "  batterycharging auto       recharge to 60% whenever a hold falls below 40%"
+        echo "  ! Without auto, this hold will eventually drain the battery to 0%."
+      fi
+    elif [[ -f "$SAVED" ]]; then
+      echo "  ! The hold's background loop is not running (it stops at a restart), so the limit no longer"
+      echo "    follows the battery down and auto refill is not working. The Mac will not charge past $limit."
+      echo "  batterycharging on         back to normal charging${was:+ ($was)}"
+      echo "  batterycharging off        start a new hold at the current level"
+      echo "  batterycharging to N       start a new hold after charging up to N%"
+    else
+      echo "  batterycharging off        stop charging and hold at the current level"
+      echo "  batterycharging to N       charge up to N%, then hold there"
+      if [[ -n "$high" ]]; then
+        echo "  batterycharging auto off   remove the saved refill setting"
+      else
+        echo "  batterycharging auto       set once: recharge to 60% whenever a hold falls below 40%"
+      fi
+    fi
     ;;
   off)
     running && { echo "Already holding."; [[ -f "$AUTO" ]] && warn; exit 0; }
@@ -147,5 +253,5 @@ $(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
     fi
     rm -f "$SAVED"
     ;;
-  *) echo "usage: batterycharging off|on|to <percent>|auto [<low> <high>]|auto off|--update|--version"; exit 1 ;;
+  *) echo "usage: batterycharging off|on|to <percent>|auto [<low> <high>]|auto off|status|restart|--update|--version"; exit 1 ;;
 esac
