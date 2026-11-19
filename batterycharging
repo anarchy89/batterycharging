@@ -9,7 +9,7 @@
 # batterycharging status   -> show the battery, the charge limit, the hold and auto, and what to run next
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.3
+VERSION=1.0.4
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -124,7 +124,11 @@ case "$1" in
       if [[ -n "$lim" && -n "$p" ]] && (( lim - p > 2 )); then
         echo "  Hold:          on, charging up to $lim% first, then holding"
       else
-        echo "  Hold:          on, the limit follows the battery down and never charges back up"
+        if [[ -n "$high" ]]; then
+          echo "  Hold:          on, the limit follows the battery down; it only charges back up below $low% (auto)"
+        else
+          echo "  Hold:          on, the limit follows the battery down and never charges back up"
+        fi
       fi
     elif [[ -f "$SAVED" ]]; then
       echo "  Hold:          STOPPED, but the limit it set is still in place"
