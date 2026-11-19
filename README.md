@@ -107,7 +107,7 @@ Run `batterycharging on` first, as shown. If the script is removed while a hold 
 A tiny bash script to **stop your MacBook from charging** while it's plugged in and **keep the battery in a range you choose**, for **macOS 27+** (and macOS 26.7+), where older tools no longer work.
 
 ```bash
-batterycharging off   # stop charging: hold at the current %, never charge up
+batterycharging off   # stop charging: hold at the current %, never charge up; if it drops, the limit follows it down
 batterycharging to 65 # charge up to 65%, then hold there just like 'off'
 batterycharging range  # keep it in a range: below 40%, charge back up to 60%, then hold again
 batterycharging range 30 65 # the same with your own range: below 30%, charge back up to 65%

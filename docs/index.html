@@ -112,7 +112,7 @@ batterycharging 1.0.13
   <p>On macOS 26.6 and earlier use <a href="https://github.com/actuallymentor/battery">actuallymentor/battery</a> instead. It has more features and works well on those versions.</p>
 
   <h2>Use</h2>
-  <pre>batterycharging off          # stop charging: hold at the current level
+  <pre>batterycharging off          # stop charging: hold at the current level, never charge up; if it drops, the limit follows it down
 batterycharging to 65        # charge up to 65%, then hold there
 batterycharging range        # keep it in a range: below 40%, charge back up to 60%
 batterycharging range 30 65  # the same with your own values
