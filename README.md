@@ -58,13 +58,13 @@ A hold is still running the old version.
 Restart it now with the new one? This runs: batterycharging restart [Y/n]
 ```
 
-`batterycharging restart` swaps the running hold for one from the installed script. The charge limit is not restored in between, so nothing charges, and a `to N` that is still charging up keeps its target. Answer `n` to leave the hold alone and run `batterycharging restart` yourself later. Your `range` setting is kept across an update, and `maintain` carries on untouched; there is nothing to set again.
+`batterycharging restart` swaps the running hold for one from the installed script. The charge limit is not restored in between, so nothing charges. A `to N` that is still charging up keeps its target. Answer `n` to leave the hold alone and run `batterycharging restart` yourself later. Your `range` setting is kept across an update and `maintain` carries on untouched; there is nothing to set again.
 
 `batterycharging --version` shows what you have.
 
 ### Coming from a version before 1.0.8
 
-In 1.0.7 the `auto` command was renamed to `range`, and a setting made with `auto` is not carried over. If you installed before 1.0.8, do not use `--update` for this one step. Turn charging back on, remove everything and install again:
+In 1.0.7 the `auto` command was renamed to `range` and a setting made with `auto` is not carried over. If you installed before 1.0.8, do not use `--update` for this one step. Turn charging back on, remove everything and install again:
 
 ```bash
 batterycharging on                                           # 1. stop any hold and restore your charge limit
@@ -73,11 +73,11 @@ sudo rm -rf "/Library/Application Support/batterycharging"   #    ...and its sav
 curl -fsSL https://raw.githubusercontent.com/anarchy89/batterycharging/main/setup.sh | sh   # 3. install the latest version
 ```
 
-Then set it up again: `batterycharging off` or `batterycharging to N` to start a hold, and `batterycharging range` if you want the battery kept in a range.
+Then set it up again: `batterycharging off` or `batterycharging to N` to start a hold and `batterycharging range` if you want the battery kept in a range.
 
 Run `batterycharging on` first, as shown. If the script is removed while a hold is active, the hold keeps running and the low charge limit stays in place.
 
-`batterycharging --version` shows which version you have; a copy too old to know that command prints a usage line instead, and is also older than 1.0.8. From 1.0.8 onward, `batterycharging --update` is all you need for future releases.
+`batterycharging --version` shows which version you have; a copy too old to know that command prints a usage line instead and is also older than 1.0.8. From 1.0.8 onward, `batterycharging --update` is all you need for future releases.
 
 ## Quick Start
 
@@ -131,7 +131,7 @@ The reason the old way stopped working:
 
 Apple's replacement, a firmware charge-limit interface (`bfD0`/`bfE0`/`bfF0`), rejects every caller that lacks the private `com.apple.private.iokit.soc-limit` entitlement, root included. Third-party tools can't get that entitlement. (Background: [az-code-lab/ampere](https://github.com/az-code-lab/ampere).)
 
-**What this script does instead:** it drives macOS's own **Manual Charge Limit**, the feature behind *System Settings → Battery → Charge Limit*. System Settings only lets you choose 80–100%, but the underlying preferences accept any value from 1 to 100:
+**What this script does instead:** it drives macOS's own **Manual Charge Limit**, the feature behind *System Settings → Battery → Charge Limit*. System Settings only lets you choose 80-100%, but the underlying preferences accept any value from 1 to 100:
 
 | Setting | Location |
 |---|---|
@@ -151,7 +151,7 @@ After writing them, the script posts the Darwin notification `com.apple.smartcha
 
 This is deliberate. A hold does not discharge the battery. What it does is allow the level to drop instead of charging it back up, if that is the behaviour you want.
 
-With macOS's own charge limit, the battery is charged back up towards the limit after it has fallen below it. I wanted to avoid those repeated top-ups, so a hold does the opposite: it never charges, and when the battery level goes down, it accepts the lower level as the new place to hold.
+With macOS's own charge limit, the battery is charged back up towards the limit after it has fallen below it. I wanted to avoid those repeated top-ups, so a hold does the opposite: it never charges and when the battery level goes down, it accepts the lower level as the new place to hold.
 
 That does not mean the battery is drained while it sits on the charger. During a hold the Mac runs on wall power and the battery is left alone, so the level normally stays where it is for hours or days. It only goes down when the battery is really being used:
 
@@ -159,7 +159,7 @@ That does not mean the battery is drained while it sits on the charger. During a
 - **The Mac needs more power than the charger gives**, for example heavy work on a small charger. The battery covers the difference.
 - **Slow self-discharge** over a long time on the charger. This is small.
 
-A hold also never leaves its limit below the battery level, because macOS answers that by running the Mac from the battery until the level is back down, even on the charger. This matters in two cases: when you run `batterycharging off` while the Mac is charging, the charge takes a minute or so to stop and the battery can end up a point above where the hold began; and the percentage macOS reports can wobble by a point. In both, the hold raises its limit to match and holds there. It allows two points at most above the lowest level the hold has been at, so it cannot creep upward. That does not charge the battery; it only avoids draining it. You can check with `batterycharging status` that the Battery and Charge limit lines show the same number, and with `batterycharging dischargecheck` that the current is 0 mA.
+A hold also never leaves its limit below the battery level, because macOS answers that by running the Mac from the battery until the level is back down, even on the charger. This matters in two cases: when you run `batterycharging off` while the Mac is charging, the charge takes a minute or so to stop and the battery can end up a point above where the hold began; and the percentage macOS reports can wobble by a point. In both, the hold raises its limit to match and holds there. It allows two points at most above the lowest level the hold has been at, so it cannot creep upward. That does not charge the battery; it only avoids draining it. You can check with `batterycharging status` that the Battery and Charge limit lines show the same number and with `batterycharging dischargecheck` that the current is 0 mA.
 
 What a hold does in each situation:
 
@@ -170,7 +170,7 @@ What a hold does in each situation:
 | The level slowly falls over days | The limit follows it down, a point at a time |
 | You run `off` while the Mac is charging | Charging takes a minute or so to stop, so the battery can end up a point or two higher. The hold settles there within two or three minutes; `dischargecheck` can show a negative number for about a minute on the way |
 | The reported percentage wobbles by a point | The limit follows the reading down and back up. Nothing is charged or drained |
-| The level rises more than two points above the hold's lowest level, quickly or slowly | Not followed past two points. The limit stays there, and macOS brings the battery back down to it by running the Mac from the battery |
+| The level rises more than two points above the hold's lowest level, quickly or slowly | Not followed past two points. The limit stays there and macOS brings the battery back down to it by running the Mac from the battery |
 | `to 65` ends a point over, at 66% | Holds at 66% |
 | A `range` is set and the level falls below its low value | Charges up to the high value, then holds again |
 | A `range` is set and the level is above it | Holds where it is; see [How `range` works](#how-range-works) |
@@ -180,7 +180,7 @@ What a hold does in each situation:
 If you would rather have the battery charged back up when it gets low, set a [`range`](#how-range-works). To go back to normal charging at any time, run `batterycharging on`.
 
 > [!WARNING]
-> A hold never charges the battery back up. Every drop is permanent until you run `batterycharging on`: slow self-discharge while plugged in, and normal use whenever you unplug. Left long enough, the battery will drain to 0%. Keep an eye on the level and run `batterycharging on` yourself when it gets low, or set [`range`](#how-range-works) to recharge automatically when it gets to the lower limit. The same applies to the hold after `to N`.
+> A hold never charges the battery back up. Every drop is permanent until you run `batterycharging on`: slow self-discharge while plugged in and normal use whenever you unplug. Left long enough, the battery will drain to 0%. Keep an eye on the level and run `batterycharging on` yourself when it gets low or set [`range`](#how-range-works) to recharge automatically when it gets to the lower limit. The same applies to the hold after `to N`.
 
 ### How `to N` works
 
@@ -202,20 +202,20 @@ batterycharging range 70 25  # the order does not matter: the smaller number is 
 batterycharging range off    # turn it off
 ```
 
-- **It does not bring the battery down into the range.** A hold does not discharge the battery; it only allows the level to drop instead of charging it back up. So a range only acts at the bottom. If you set `batterycharging range 25 65` while the battery is at 90%, it stays near 90% and drifts down by itself; it is not taken down to 65%. Once it falls below 25% it charges to 65%, and from then on it stays between 25% and 65%. If you want to be in the range sooner, unplug the charger and use the Mac until the battery is down to 65% or lower, then plug it back in; the hold picks up from there. Waiting works just as well. The command tells you when the battery is above or below the range you set.
+- **It does not bring the battery down into the range.** A hold does not discharge the battery; it only allows the level to drop instead of charging it back up. So a range only acts at the bottom. If you set `batterycharging range 25 65` while the battery is at 90%, it stays near 90% and drifts down by itself; it is not taken down to 65%. Once it falls below 25% it charges to 65% and from then on it stays between 25% and 65%. If you want to be in the range sooner, unplug the charger and use the Mac until the battery is down to 65% or lower, then plug it back in; the hold picks up from there. Waiting works just as well. The command tells you when the battery is above or below the range you set.
 - **It works together with a hold.** `range` does not start one; start a hold with `off` or `to N` as usual. Without `range`, those commands work exactly as described above. Once it's set, any hold started with `off` or `to N` checks the battery every 60 seconds and, if it is below the low value, does the same thing as `batterycharging to 60`. After the charge-up it goes back to holding.
 - **Either order works.** `batterycharging range 25 70` and `batterycharging range 70 25` set the same range: the smaller number is always the low value and the larger one the high value.
-- **Invalid values are refused with an error, and nothing is changed.** Both values must be whole numbers from 1 to 100 and different from each other. A negative number, 0, a number above 100, a decimal such as `12.5`, two equal numbers such as `50 50`, or only one number is rejected, and any range you set earlier stays in force.
-- **You can set it at any time.** A hold that is already running picks it up within a minute; there is no need to restart it. That includes a recharge in progress: change the range and the charge follows the new high value, and `range off` stops it where it is.
+- **Invalid values are refused with an error and nothing is changed.** Both values must be whole numbers from 1 to 100 and different from each other. A negative number, 0, a number above 100, a decimal such as `12.5`, two equal numbers such as `50 50` or only one number is rejected and any range you set earlier stays in force.
+- **You can set it at any time.** A hold that is already running picks it up within a minute; there is no need to restart it. That includes a recharge in progress: change the range and the charge follows the new high value and `range off` stops it where it is.
 - **Unplugged:** if the battery drops below the low value while unplugged, the limit is raised within a minute and the Mac charges to the high value when you plug back in.
-- **`on` keeps the setting.** It stops the hold as usual, and the saved range applies again to your next hold. `on` reminds you of this.
+- **`on` keeps the setting.** It stops the hold as usual and the saved range applies again to your next hold. `on` reminds you of this.
 - **You are told when it is on.** While `range` is set, `off` and `to N` print a warning that the refill is active, including when a hold is already running. Run `batterycharging range off` first if you want a hold that never charges back up.
 - The low value also applies to a hold you start below it: with `range` set, `batterycharging off` at 15% charges up to 60% and holds there.
 
 ### How `maintain` works
 
 > [!NOTE]
-> I have not tested `maintain` on a real Mac, because I do not need this behaviour myself. If you use it and it does not work, or you do not like how it behaves, [let me know](https://github.com/anarchy89/batterycharging/issues) and I will modify it.
+> I have not tested `maintain` on a real Mac, because I do not need this behaviour myself. If you use it and it does not work or you do not like how it behaves, [let me know](https://github.com/anarchy89/batterycharging/issues) and I will modify it.
 
 ```bash
 batterycharging maintain 70   # keep the battery at 70%
@@ -230,9 +230,9 @@ batterycharging on            # back to normal charging; restores your previous 
 batterycharging off           # stop maintaining and hold at the current level, without charging back up
 ```
 
-`maintain` is basically Apple's own Charge Limit, with its usual charge-back-up and run-from-the-battery behaviour, except that you can set it below 80%. System Settings → Battery → Charge Limit only offers 80% to 100%; `maintain` writes the same setting with any value from 1 to 100, and from then on it is Apple's mechanism that keeps the battery there.
+`maintain` is basically Apple's own Charge Limit, with its usual charge-back-up and run-from-the-battery behaviour, except that you can set it below 80%. System Settings → Battery → Charge Limit only offers 80-100%; `maintain` writes the same setting with any value from 1 to 100 and from then on it is Apple's mechanism that keeps the battery there.
 
-`batterycharging maintain 70` keeps the battery at 70%. It sets the charge limit to that level and leaves it there, and macOS does the rest:
+`batterycharging maintain 70` keeps the battery at 70%. It sets the charge limit to that level and leaves it there and macOS does the rest:
 
 - when the battery falls below 70%, macOS charges it back up;
 - when the battery is above 70%, macOS runs the Mac from the battery, even on the charger, until it is down to 70%.
@@ -260,8 +260,8 @@ If you charge with a MagSafe cable, the light on its connector shows which state
 
 | MagSafe light | State | When you see it |
 |---|---|---|
-| **Green** | Drawing power from the wall, battery not charging | During a hold (`off`, or `to N` once it has reached its level), while `maintain` is at its level, or when the battery is full |
-| **Orange** | Charging the battery | After `batterycharging on`, while `to N` is charging up, while a `range` is charging back up to its high value, or while `maintain` is topping up |
+| **Green** | Drawing power from the wall, battery not charging | During a hold (`off` or `to N` once it has reached its level), while `maintain` is at its level or when the battery is full |
+| **Orange** | Charging the battery | After `batterycharging on`, while `to N` is charging up, while a `range` is charging back up to its high value or while `maintain` is topping up |
 
 So after `batterycharging off` the light turns green even though the battery is not full: the Mac runs on wall power and leaves the battery alone. When a range kicks in at its low value, the light turns orange until the high value is reached, then green again.
 
@@ -270,7 +270,7 @@ So after `batterycharging off` the light turns green even though the battery is 
 | After this | The battery actually | Time taken |
 |---|---|---|
 | `batterycharging on` | starts charging | about 20 to 45 seconds |
-| `batterycharging off`, or `range off` during a recharge | stops charging | about 1 to 2 minutes |
+| `batterycharging off` or `range off` during a recharge | stops charging | about 1 to 2 minutes |
 | a `range` reaching its low value | starts charging | within about 2 minutes |
 
 So allow two or three minutes before deciding a command has not worked. During that time the light may already be green while the battery is still charging. `batterycharging dischargecheck` shows what the battery is really doing.
@@ -284,7 +284,7 @@ batterycharging off
 # Password: ****
 # Charging off: holding at 72%. Charge can only go down until 'batterycharging on'.
 # Warning: left like this, the battery will eventually drain to 0%. Run 'batterycharging on' when it
-# gets low, or set 'batterycharging range' to recharge automatically when it gets to the lower limit.
+# gets low or set 'batterycharging range' to recharge automatically when it gets to the lower limit.
 
 batterycharging on
 # Charging on: previous charge limit restored.
@@ -340,10 +340,10 @@ pmset -g batt
 
 ## Notes & limitations
 
-- **Reboots:** the firmware keeps the mac os system charge limit across a reboot, so the Mac still won't charge past it. The background loop does **not** restart after a reboot, so the limit stops following the battery down. Run `batterycharging off` to start a new hold; there is no need to run `on` first, and doing so would let the Mac start charging in between. The `range` refill also stops working after a reboot until you start a new hold, although the setting itself is kept. `maintain` is not affected: it keeps working after a restart, because nothing needs to run.
+- **Reboots:** the firmware keeps the mac os system charge limit across a reboot, so the Mac still won't charge past it. The background loop does **not** restart after a reboot, so the limit stops following the battery down. Run `batterycharging off` to start a new hold; there is no need to run `on` first and doing so would let the Mac start charging in between. The `range` refill also stops working after a reboot until you start a new hold, although the setting itself is kept. `maintain` is not affected: it keeps working after a restart, because nothing needs to run.
 - **System Settings:** while a hold or `maintain` is active, *Battery → Charge Limit* may show an odd value, because the script sets limits below 80%. Don't change it there in the meantime; use `batterycharging on` instead.
 - **Restoring:** `on` restores your previous charge limit (for example 80%, 90%, 95%). If Charge Limit had never been set on your Mac, `on` sets it to 100%, which charges fully just as before; System Settings → Battery then shows a 100% charge limit.
-- **Battery calibration (reported by others, not seen here):** macOS occasionally recalibrates the battery, and while it does it is reported to ignore the charge limit and charge to 100%. If that happens during a hold, the limit stays where it was and macOS brings the battery back down afterwards.
+- **Battery calibration (reported by others, not seen here):** macOS occasionally recalibrates the battery. While it does, it is reported to ignore the charge limit and charge to 100%. If that happens during a hold, the limit stays where it was and macOS brings the battery back down afterwards.
 - **Optimized Battery Charging (reported by others, not seen here):** it is reported to interfere with charge limits. If the limit is not respected, try turning it off in *System Settings → Battery*.
 - State files are kept in `/Library/Application Support/batterycharging/`.
 - **The download is not signed.** `setup.sh` and `batterycharging --update` fetch the script from this repository's releases over HTTPS and trust what they get. Each release lists the SHA-256 of its script so you can compare: `shasum -a 256 /usr/local/bin/batterycharging`. The script runs parts of itself as root, so read it first if you prefer; it is short.

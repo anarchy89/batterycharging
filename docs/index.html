@@ -108,7 +108,7 @@ batterycharging 1.0.13
 
   <h2>Install</h2>
   <pre>curl -fsSL https://raw.githubusercontent.com/anarchy89/batterycharging/main/setup.sh | sh</pre>
-  <p>It needs an Apple silicon MacBook on macOS 27 or later, or macOS 26.7 or later, and an admin password. Update later with <code>batterycharging --update</code>.</p>
+  <p>It needs an Apple silicon MacBook on macOS 27 or later (or macOS 26.7 or later) and an admin password. Update later with <code>batterycharging --update</code>.</p>
   <p>On macOS 26.6 and earlier use <a href="https://github.com/actuallymentor/battery">actuallymentor/battery</a> instead. It has more features and works well on those versions.</p>
 
   <h2>Use</h2>
@@ -128,7 +128,7 @@ batterycharging dischargecheck  # how much current is flowing out of the battery
     <li><code>maintain N</code> keeps the battery at a fixed level. macOS charges it back up each time it falls below, which means small repeated top-ups (microcharging) that a hold avoids.</li>
     <li><code>on</code> stops the hold and restores the charge limit you had before, such as 80%.</li>
   </ul>
-  <div class="note">A hold on its own never charges the battery back up, so left long enough it drains to 0%. Set a range, or run <code>batterycharging on</code> when it gets low.</div>
+  <div class="note">A hold on its own never charges the battery back up, so left long enough it drains to 0%. Set a range or run <code>batterycharging on</code> when it gets low.</div>
 
   <h2>Why it exists</h2>
   <p>I used to simply switch charging off: with the charger connected the Mac ran from the wall and the battery just sat there, as good as taking it out. macOS no longer allows that, so <code>batterycharging off</code> is my attempt to get as close to it as I can. The rest is extras.</p>
