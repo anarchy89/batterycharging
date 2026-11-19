@@ -193,7 +193,7 @@ pmset -g batt
 
 - **Reboots:** the firmware keeps the mac os system charge limit across a reboot, so the Mac still won't charge past it. The background loop does **not** restart after a reboot, so the limit stops following the battery down. Run `batterycharging on` and then `batterycharging off` again to start a new hold. The `range` refill also stops working after a reboot until you start a new hold, although the setting itself is kept.
 - **System Settings:** while a hold is active, *Battery → Charge Limit* may show an odd value, because the script sets limits below 80%. Don't change it there while holding; use `batterycharging on` instead.
-- **Restoring:** `on` restores your previous charge limit (for example 80%, 90%, 95%). If Charge Limit had never been set on your Mac, `on` removes the settings the script added, so it's back to how it was.
+- **Restoring:** `on` restores your previous charge limit (for example 80%, 90%, 95%). If Charge Limit had never been set on your Mac, `on` sets it to 100%, which charges fully just as before; System Settings → Battery then shows a 100% charge limit.
 - State files are kept in `/Library/Application Support/batterycharging/`.
 - **The download is not signed.** `setup.sh` and `batterycharging --update` fetch the script from this repository's releases over HTTPS and trust what they get. Each release lists the SHA-256 of its script so you can compare: `shasum -a 256 /usr/local/bin/batterycharging`. The script runs parts of itself as root, so read it first if you prefer; it is short.
 - Apple can change these internals in any update.

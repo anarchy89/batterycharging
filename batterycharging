@@ -10,7 +10,7 @@
 # batterycharging status   -> show the battery, the charge limit, the hold and range, and what to run next
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.8
+VERSION=1.0.9
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -275,11 +275,9 @@ $(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
     read -r st lim < "$SAVED"
     if [[ "$st" == 1 ]]; then
       setlim "$lim"
-    elif [[ "$st" == none ]]; then   # charge limit was never set on this Mac: remove our keys
-      defaults delete $D MCLFeatureState 2>/dev/null
-      defaults delete $D mclLimitValue 2>/dev/null
-      notifyutil -p com.apple.smartcharging.defaultschanged
     else
+      # no limit was set before: write an explicit 100% so the firmware is told to charge again.
+      # Only removing our settings left some Macs not charging until a restart.
       setlim 100
     fi
     rm -f "$SAVED"
