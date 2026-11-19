@@ -127,6 +127,8 @@ batterycharging on            # back to normal charging; restores your previous 
 batterycharging off           # stop maintaining and hold at the current level, without charging back up
 ```
 
+`maintain` is basically Apple's own Charge Limit, with its usual charge-back-up and run-from-the-battery behaviour, except that you can set it below 80%. System Settings → Battery → Charge Limit only offers 80% to 100%; `maintain` writes the same setting with any value from 1 to 100, and from then on it is Apple's mechanism that keeps the battery there.
+
 `batterycharging maintain 70` keeps the battery at 70%. It sets the charge limit to that level and leaves it there, and macOS does the rest:
 
 - when the battery falls below 70%, macOS charges it back up;
