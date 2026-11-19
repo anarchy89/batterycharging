@@ -9,7 +9,7 @@
 # batterycharging status   -> show the battery, the charge limit, the hold and auto, and what to run next
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.2
+VERSION=1.0.3
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -55,7 +55,12 @@ case "$1" in
       echo "Replacing $self needs your password."
       sudo install -m 755 "$new" "$self" || { echo "Could not replace $self"; exit 1; }
     fi
-    echo "Updated batterycharging $VERSION to $latest."
+    # hand over to the file just installed, so what happens after an update is decided by the new version
+    rm -f "$new"; trap - EXIT
+    exec "$self" _updated "$VERSION"
+    ;;
+  _updated)   # run by --update from the newly installed file; $2 is the version that was replaced
+    echo "Updated batterycharging ${2:-?} to $VERSION."
     if running; then
       echo "A hold is still running the old version."
       ans=n
@@ -65,11 +70,10 @@ case "$1" in
       fi
       case "$ans" in
         n*|N*) echo "Left as it is. To restart it later, run: batterycharging restart" ;;
-        *)     "$self" restart || echo "The restart did not work. Try again with: batterycharging restart" ;;
+        *)     "$0" restart || echo "The restart did not work. Try again with: batterycharging restart" ;;
       esac
     fi
     echo "Run 'batterycharging status' to see what is set."
-    exit 0
     ;;
   restart)
     running || { echo "No hold is running. Start one with 'batterycharging off' or 'to N'."; exit 1; }
