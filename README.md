@@ -57,10 +57,13 @@ On its own, a hold only ever follows the battery down, all the way to 0% if you 
 ```bash
 batterycharging auto        # below 40%, charge back up to 60%, then hold again
 batterycharging auto 25 70  # same, with your own low and high values
+batterycharging auto 70 25  # the order does not matter: the smaller number is the low value
 batterycharging auto off    # turn it off
 ```
 
 - **It works together with a hold.** `auto` does not start one; start a hold with `off` or `to N` as usual. Without `auto`, those commands work exactly as described above. Once it's set, any hold started with `off` or `to N` checks the battery every 60 seconds and, if it is below the low value, does the same thing as `batterycharging to 60`. After the charge-up it goes back to holding.
+- **Either order works.** `batterycharging auto 25 70` and `batterycharging auto 70 25` set the same range: the smaller number is always the low value and the larger one the high value.
+- **Invalid values are refused with an error, and nothing is changed.** Both values must be whole numbers from 1 to 100 and different from each other. A negative number, 0, a number above 100, a decimal such as `12.5`, two equal numbers such as `50 50`, or only one number is rejected, and any range you set earlier stays in force.
 - **You can set it at any time.** A hold that is already running picks it up within a minute; there is no need to restart it.
 - **Unplugged:** if the battery drops below the low value while unplugged, the limit is raised straight away and the Mac charges to the high value when you plug back in.
 - **`on` keeps the setting.** It stops the hold as usual, and the auto setting applies again to your next hold. `on` reminds you of this.

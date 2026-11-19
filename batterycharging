@@ -3,13 +3,14 @@
 # batterycharging to N -> charge up to N%, then hold there exactly like 'off'
 # batterycharging on   -> resume charging: stop holding and restore your previous charge limit
 # batterycharging auto [LOW HIGH] -> opt in (set once): while holding, if the battery falls below
-#                         LOW% (default 40), charge back up to HIGH% (default 60), then hold again
+#                         LOW% (default 40), charge back up to HIGH% (default 60), then hold again;
+#                         the two numbers can be given in either order
 # batterycharging auto off -> turn that off again
 # batterycharging restart  -> restart a running hold with this script (after an update); the limit stays put
 # batterycharging status   -> show the battery, the charge limit, the hold and auto, and what to run next
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.5
+VERSION=1.0.6
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -197,9 +198,21 @@ case "$1" in
       sudo rm -f "$AUTO" && echo "Auto refill off."
       exit
     fi
+    usage="usage: batterycharging auto [<low> <high>] | auto off   (default 40 60, numbers in either order)"
+    if [[ -n "$2" && -z "$3" ]]; then
+      echo "Give two numbers, or none for the default 40 and 60: for example 'batterycharging auto 30 65'."
+      echo "$usage"; exit 1
+    fi
     low=${2:-40}; high=${3:-60}
-    [[ "$low" =~ ^[0-9]+$ && "$high" =~ ^[0-9]+$ ]] && (( low >= 1 && high <= 100 && low < high )) \
-      || { echo "usage: batterycharging auto [<low> <high>] | auto off   (default 40 60)"; exit 1; }
+    [[ "$low" =~ ^[0-9]+$ && "$high" =~ ^[0-9]+$ ]] || { echo "Both values must be whole numbers from 1 to 100."; echo "$usage"; exit 1; }
+    low=$((10#$low)); high=$((10#$high))
+    # either order: the smaller number is the low limit, the larger one the high limit
+    if (( low > high )); then t=$low; low=$high; high=$t; fi
+    if (( low == high )); then
+      echo "The two values must be different: one to start charging below, one to charge up to."
+      echo "$usage"; exit 1
+    fi
+    (( low >= 1 && high <= 100 )) || { echo "Both values must be whole numbers from 1 to 100."; echo "$usage"; exit 1; }
     sudo "$0" _auto "$low" "$high" || exit 1
     echo "Auto refill on: while holding, below $low% it charges back up to $high%, then holds again."
     running || echo "No hold is active right now; this applies once you run 'batterycharging off' or 'to N'."
