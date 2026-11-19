@@ -99,6 +99,28 @@ batterycharging restart # restart a running hold after an update; the charge lim
 > [!NOTE]
 > On **macOS 26.6 and earlier**, use [actuallymentor/battery](https://github.com/actuallymentor/battery) instead. It has more features and works well on those versions.
 
+## Contents
+
+- [Requirements](#requirements)
+- [Installation](#installation)
+  - [By hand](#by-hand)
+  - [Update](#update)
+  - [Coming from a version before 1.0.8](#coming-from-a-version-before-108)
+- [Quick Start](#quick-start)
+- [Why I made this](#why-i-made-this)
+  - [How `off` works](#how-off-works)
+  - [Why a hold lets the battery level drop](#why-a-hold-lets-the-battery-level-drop)
+  - [How `to N` works](#how-to-n-works)
+  - [How `range` works](#how-range-works)
+  - [How `maintain` works](#how-maintain-works)
+  - [What the charger light tells you](#what-the-charger-light-tells-you)
+- [Usage](#usage)
+- [Notes & limitations](#notes--limitations)
+- [Uninstall](#uninstall)
+- [Credits](#credits)
+- [Disclaimer](#disclaimer)
+- [License](#license)
+
 ## Why I made this
 
 I used to simply switch charging off. With the charger connected and charging disabled, the Mac runs from the wall and the battery just sits there, which is as good as taking the battery out. That is what I wanted all along. macOS no longer allows it, so `batterycharging off` is my attempt to get as close to that behaviour as I can. Everything else here, such as `to N`, `range` and `maintain`, is an extra built on top of it.
