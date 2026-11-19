@@ -8,9 +8,10 @@
 # batterycharging range off -> turn that off again
 # batterycharging restart  -> restart a running hold with this script (after an update); the limit stays put
 # batterycharging status   -> show the battery, the charge limit, the hold and range, and what to run next
+# batterycharging dischargecheck -> show how much current is flowing out of (or into) the battery right now
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.10
+VERSION=1.0.11
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -99,6 +100,25 @@ case "$1" in
     fi
     warn
     ;;
+  dischargecheck)
+    echo "Current at the battery, three readings 5 seconds apart:"
+    for i in 1 2 3; do
+      a=$(ioreg -rn AppleSmartBattery | grep '"Amperage" ' | grep -Eo '[0-9]+$')
+      if [[ -z "$a" ]]; then echo "  $(date +%H:%M:%S)  could not read the battery current"; exit 1; fi
+      a=$(( a ))   # the value is reported unsigned; this turns a very large number into the negative it stands for
+      if   (( a < 0 )); then what="discharging: the Mac is running from the battery"
+      elif (( a > 0 )); then what="charging"
+      else                   what="not in use: the Mac is running on wall power"; fi
+      printf '  %s  %6d mA  %s\n' "$(date +%H:%M:%S)" "$a" "$what"
+      (( i < 3 )) && sleep 5
+    done
+    pmset -g batt | tail -1 | sed -e 's/^[^)]*)[[:space:]]*/  Battery: /' -e 's/ present:.*//'
+    echo
+    echo "macOS refreshes this reading about every half minute, so the three lines are often the same."
+    echo "During a hold it should be 0 mA. After the battery level drops a point it can show a negative"
+    echo "number for a while: wait about a minute after the drop, check with 'batterycharging status' that"
+    echo "Battery and Charge limit show the same percentage, then run this again."
+    ;;
   status)
     batt=$(pmset -g batt); p=$(pct)
     src=$(echo "$batt" | sed -n "s/.*'\(.*\)'.*/\1/p" | head -1)
@@ -122,7 +142,8 @@ case "$1" in
     echo "  Battery:       ${p:-?}%, on ${src:-unknown power}${chg:+, $chg}"
     echo "  Charge limit:  $limit"
     if running; then
-      if [[ -n "$lim" && -n "$p" ]] && (( lim - p > 2 )); then
+      # charging up: the limit is well above the battery, or a little above it while the Mac is charging
+      if [[ -n "$lim" && -n "$p" ]] && (( lim > p )) && { (( lim - p > 2 )) || [[ "$chg" == charging* ]]; }; then
         echo "  Hold:          on, charging up to $lim% first, then holding"
       else
         echo "  Hold:          on, the limit follows the battery down, unless range is on (see Range for its limits)"
@@ -247,6 +268,13 @@ $(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
         setlim "$target"       # firmware charges up to the target and stops there
         while sleep 60; do
           p=$(pct); [[ -z "$p" ]] && continue
+          # a recharge started by a range follows the range if it is changed or turned off meanwhile
+          if [[ -n "$ranged" ]]; then
+            high=; [[ -f "$RANGE" ]] && read -r low high < "$RANGE"
+            # range off, or its new high value is already reached: stop charging and hold here
+            if [[ -z "$high" ]] || (( high <= p )); then target=$p; break; fi
+            if (( high != target )); then target=$high; setlim "$target"; fi
+          fi
           (( p >= target )) && break
           # firmware may settle a point or two short of the limit: treat that as done
           if (( p >= target - 2 )) && pmset -g batt | grep -q "AC Power" \
@@ -256,13 +284,13 @@ $(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
         (( hold > target )) && hold=$target
       fi
       setlim "$hold"
-      target=
+      target=; ranged=
       while sleep 60; do
         p=$(pct); [[ -z "$p" ]] && continue
         if (( p < hold )); then hold=$p; setlim "$hold"; fi
         # range (only if 'batterycharging range' was set): below LOW, charge up to HIGH
         if [[ -f "$RANGE" ]] && read -r low high < "$RANGE" && [[ -n "$high" ]] && (( p < low )); then
-          target=$high; break
+          target=$high; ranged=1; break
         fi
       done
     done
@@ -282,5 +310,5 @@ $(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
     fi
     rm -f "$SAVED"
     ;;
-  *) echo "usage: batterycharging off|on|to <percent>|range [<low> <high>]|range off|status|restart|--update|--version"; exit 1 ;;
+  *) echo "usage: batterycharging off|on|to <percent>|range [<low> <high>]|range off|status|restart|dischargecheck|--update|--version"; exit 1 ;;
 esac
