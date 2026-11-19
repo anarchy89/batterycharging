@@ -36,7 +36,7 @@ After writing them, the script posts the Darwin notification `com.apple.smartcha
 
 1. Saves your current charge-limit settings (only once, so you can get them back later).
 2. Sets the charge limit to your **current battery %**. 
-3. Starts a small background loop as root. Every 60 seconds, it checks the battery; if the level has dropped, **it lowers the limit to match**. The limit only ever goes down, so the Mac runs on wall power and never charges back up.
+3. Starts a small background loop as root. Every 60 seconds, it checks the battery; if the level has dropped, **it lowers the limit to match**. The limit is never set above the battery, so the Mac runs on wall power and never charges back up.
 4. You will notice the charging cable light should turn green (means it thinks its fully charged), if you look for the icon at the top right, it will say power source power adapter and if you open settings / battery it will say Charged to 0% limit.
 
 ### Why a hold lets the battery level drop
@@ -51,7 +51,22 @@ That does not mean the battery is drained while it sits on the charger. During a
 - **The Mac needs more power than the charger gives**, for example heavy work on a small charger. The battery covers the difference.
 - **Slow self-discharge** over a long time on the charger. This is small.
 
-One more case, seen in testing: the percentage macOS reports can wobble by one point, most often just after the battery has been charging or in use. If a hold reads the lower number, it lowers its limit by one point, and the Mac then runs from the battery until the level matches, which costs about one percent. After that it holds steady again. You can check with `batterycharging status`: if the Charge limit line shows a number one below the Battery line, this is what is happening, and it is over once the two match. I have seen this once and do not yet know how often it happens in normal use.
+A hold also never leaves its limit below the battery level, because macOS answers that by running the Mac from the battery until the level is back down, even on the charger. This matters in two cases: when you run `batterycharging off` while the Mac is charging, the charge takes a minute or so to stop and the battery can end up a point above where the hold began; and the percentage macOS reports can wobble by a point. In both, the hold raises its limit to match (by two points at most) and holds there. That does not charge the battery; it only avoids draining it. You can check with `batterycharging status` that the Battery and Charge limit lines show the same number, and with `batterycharging dischargecheck` that the current is 0 mA.
+
+What a hold does in each situation:
+
+| Situation | What the hold does |
+|---|---|
+| Sitting on the charger, nothing changing | Holds. The battery is left alone (`dischargecheck` shows 0 mA) |
+| You use the Mac unplugged, then plug back in | Stays at the lower level. It is not charged back up |
+| The level slowly falls over days | The limit follows it down, a point at a time |
+| You run `off` while the Mac is charging | Charging takes a minute or so to stop, so the battery can end up a point or two higher. The hold settles there within two or three minutes; `dischargecheck` can show a negative number for about a minute on the way |
+| The reported percentage wobbles by a point | The limit follows the reading down and back up. Nothing is charged or drained |
+| The level jumps by three points or more | Not followed. The limit stays, and macOS brings the battery back down to it by running the Mac from the battery |
+| `to 65` ends a point over, at 66% | Holds at 66% |
+| A `range` is set and the level falls below its low value | Charges up to the high value, then holds again |
+| A `range` is set and the level is above it | Holds where it is; see [How `range` works](#how-range-works) |
+| The Mac restarts | The charge limit the hold last set (for example 64%) stays in place, so the Mac still will not charge past it. But the hold itself stops: the limit no longer follows the battery down and a range no longer recharges. Start a new hold with `off` or `to N` |
 
 If you would rather have the battery charged back up when it gets low, set a [`range`](#how-range-works). To go back to normal charging at any time, run `batterycharging on`.
 
