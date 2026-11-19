@@ -145,10 +145,10 @@ To check what's set right now:
 
 ```bash
 batterycharging status
-# batterycharging 1.0.4
+# batterycharging 1.0.5
 #   Battery:       58%, on AC Power, not charging
 #   Charge limit:  58%
-#   Hold:          on, the limit follows the battery down; it only charges back up below 40% (auto)
+#   Hold:          on, the limit follows the battery down, unless auto is on (see Auto refill for its limits)
 #   Auto refill:   on, below 40% a hold charges back up to 60%
 #   'on' restores: 80% charge limit
 #
