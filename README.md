@@ -133,6 +133,23 @@ Restart it now with the new one? This runs: batterycharging restart [Y/n]
 
 `batterycharging --version` shows what you have.
 
+### Coming from a version before 1.0.8
+
+In 1.0.7 the `auto` command was renamed to `range`, and a setting made with `auto` is not carried over. If you installed before 1.0.8, do not use `--update` for this one step. Turn charging back on, remove everything and install again:
+
+```bash
+batterycharging on                                           # 1. stop any hold and restore your charge limit
+sudo rm /usr/local/bin/batterycharging                       # 2. remove the old script...
+sudo rm -rf "/Library/Application Support/batterycharging"   #    ...and its saved settings
+curl -fsSL https://raw.githubusercontent.com/anarchy89/batterycharging/main/setup.sh | sh   # 3. install the latest version
+```
+
+Then set it up again: `batterycharging off` or `batterycharging to N` to start a hold, and `batterycharging range` if you want the battery kept in a range.
+
+Run `batterycharging on` first, as shown. If the script is removed while a hold is active, the hold keeps running and the low charge limit stays in place.
+
+`batterycharging --version` shows which version you have; a copy too old to know that command prints a usage line instead, and is also older than 1.0.8. From 1.0.8 onward, `batterycharging --update` is all you need for future releases.
+
 ## Usage
 
 ```bash
