@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>batterycharging: stop your MacBook charging on macOS 27</title>
+<meta name="description" content="batterycharging stops a MacBook from charging while it is plugged in and keeps the battery in a range you choose. A small bash script for Apple silicon Macs on macOS 27 and 26.7 or later, where older charge limiters no longer work.">
+<link rel="canonical" href="https://anarchy89.github.io/batterycharging/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="batterycharging: stop your MacBook charging on macOS 27">
+<meta property="og:description" content="Hold the battery where it is, charge to a level you pick or keep it in a range, on macOS 27 and 26.7+ where older tools stopped working.">
+<meta property="og:url" content="https://anarchy89.github.io/batterycharging/">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground: #fbfaf8;
+    --text: #1d1c1a;
+    --soft: #5c5952;
+    --line: #dedad2;
+    --code-ground: #f0ede7;
+    --accent: #1a7f37;
+    --warn: #9a5b00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #161514;
+      --text: #ecebe7;
+      --soft: #a5a199;
+      --line: #35332f;
+      --code-ground: #22201e;
+      --accent: #4ac26b;
+      --warn: #e3a008;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 56px 20px 40px; }
+  h1 {
+    margin: 0;
+    font: 700 44px/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+  }
+  h1 .c { color: var(--accent); }
+  .tagline { margin: 14px 0 0; font-size: 21px; line-height: 1.4; }
+  .lead { color: var(--soft); margin: 14px 0 28px; }
+  h2 { margin: 44px 0 10px; font-size: 22px; }
+  p { margin: 10px 0; }
+  ul { margin: 10px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  pre {
+    margin: 12px 0;
+    padding: 14px 16px;
+    overflow-x: auto;
+    background: var(--code-ground);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  code { font: 0.9em ui-monospace, SFMono-Regular, Menlo, monospace; }
+  p code, li code { background: var(--code-ground); padding: 1px 5px; border-radius: 4px; }
+  a { color: var(--accent); }
+  .note {
+    margin: 16px 0;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--warn);
+    border-radius: 8px;
+  }
+  .buttons { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0 0; }
+  .buttons a {
+    padding: 10px 18px;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .buttons a.main { background: var(--accent); color: var(--ground); }
+  footer {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    color: var(--soft);
+    font-size: 14px;
+  }
+  @media (max-width: 480px) { h1 { font-size: 32px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>battery<span class="c">charging</span></h1>
+  <p class="tagline">Stop your MacBook from charging while it is plugged in, on macOS 27 and 26.7 or later.</p>
+  <p class="lead">batterycharging holds the battery where it is, charges it to a level you pick or keeps it in a range you choose. It is one small bash script for Apple silicon MacBooks, made for the macOS versions where older charge limiters stopped working.</p>
+
+  <pre>$ batterycharging status
+batterycharging 1.0.8
+  Battery:       58%, on AC Power, not charging
+  Charge limit:  58%
+  Hold:          on, the limit follows the battery down, unless range is on (see Range for its limits)
+  Range:         on, below 40% a hold charges back up to 60%
+  'on' restores: 80% charge limit</pre>
+
+  <h2>Install</h2>
+  <pre>curl -fsSL https://raw.githubusercontent.com/anarchy89/batterycharging/main/setup.sh | sh</pre>
+  <p>It needs an Apple silicon MacBook on macOS 27 or later, or macOS 26.7 or later, and an admin password. Update later with <code>batterycharging --update</code>.</p>
+  <p>On macOS 26.6 and earlier use <a href="https://github.com/actuallymentor/battery">actuallymentor/battery</a> instead. It has more features and works well on those versions.</p>
+
+  <h2>Use</h2>
+  <pre>batterycharging off          # stop charging: hold at the current level
+batterycharging to 65        # charge up to 65%, then hold there
+batterycharging range        # keep it in a range: below 40%, charge back up to 60%
+batterycharging range 30 65  # the same with your own values
+batterycharging on           # back to normal charging
+
+batterycharging status       # what is set right now and what to run next</pre>
+  <ul>
+    <li><code>off</code> holds the battery at its current level. The Mac runs on wall power and the battery never charges back up.</li>
+    <li><code>to N</code> charges to the level you give, then holds there in the same way.</li>
+    <li><code>range</code> adds a floor to a hold: when the battery falls below the low value it charges back up to the high value and holds again.</li>
+    <li><code>on</code> stops the hold and restores the charge limit you had before, such as 80%.</li>
+  </ul>
+  <div class="note">A hold on its own never charges the battery back up, so left long enough it drains to 0%. Set a range, or run <code>batterycharging on</code> when it gets low.</div>
+
+  <h2>Why it exists</h2>
+  <p>Tools such as <code>battery</code> stop charging by writing the SMC key <code>CHTE</code>. The firmware that ships with macOS 27 and the macOS 26.7 update no longer has that key, so those writes fail. Apple's replacement interface only accepts callers with a private entitlement that third-party tools cannot get.</p>
+  <p>batterycharging drives macOS's own Manual Charge Limit instead, the feature behind System Settings, Battery, Charge Limit. System Settings offers 80% to 100%, but the setting underneath accepts any value from 1 to 100. The firmware then stops charging at that limit, including while the Mac sleeps.</p>
+
+  <h2>What it does</h2>
+  <ul>
+    <li>Stops charging at any level, not only at 80% and above.</li>
+    <li>Follows the battery down, so it is never topped back up to a fixed limit over and over.</li>
+    <li>Charges to a level you choose and stops there.</li>
+    <li>Keeps the battery between a low and a high value if you set a range.</li>
+    <li>Shows what is set and what to run next with <code>status</code>.</li>
+    <li>Puts your original charge limit back with one command.</li>
+    <li>Updates itself with <code>--update</code>.</li>
+    <li>Is one readable bash script with nothing else to install.</li>
+  </ul>
+
+  <div class="buttons">
+    <a class="main" href="https://github.com/anarchy89/batterycharging#readme">Read the full guide</a>
+    <a href="https://github.com/anarchy89/batterycharging">Source on GitHub</a>
+    <a href="https://github.com/anarchy89/batterycharging/releases/latest">Latest release</a>
+  </div>
+
+  <footer>
+    batterycharging is free software under the MIT license. It changes undocumented system settings, so use it at your own risk; Apple can change these internals in any update. It is not affiliated with or endorsed by Apple. Please <a href="https://github.com/anarchy89/batterycharging/issues">report problems</a>.
+  </footer>
+</main>
+</body>
+</html>
