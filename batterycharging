@@ -9,7 +9,7 @@
 #                         the two numbers can be given in either order
 # batterycharging range off -> turn that off again
 # batterycharging restart  -> restart a running hold with this script (after an update); the limit stays put
-# batterycharging status   -> show the battery, the charge limit, the hold and range, and what to run next
+# batterycharging status   -> show the battery, the charge limit, the hold and range and what to run next
 # batterycharging dischargecheck -> show how much current is flowing out of (or into) the battery right now
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
@@ -287,7 +287,7 @@ case "$1" in
     p=$(pct)
     if [[ -n "$p" ]] && (( p > high )); then
       echo "Note: the battery is at $p%, above this range. A hold does not discharge it, so it is not brought down"
-      echo "to $high%: it drifts down by itself. Once it falls below $low% it charges to $high%, and from then on it"
+      echo "to $high%: it drifts down by itself. Once it falls below $low% it charges to $high% and from then on it"
       echo "stays between $low% and $high%."
       echo "To get into the range sooner, unplug the charger until the battery is down to $high% or lower, then"
       echo "plug it back in. Waiting works just as well."
@@ -299,7 +299,7 @@ case "$1" in
       fi
     fi
     if ! running && [[ -f "$MAINTAIN" ]]; then
-      echo "Maintain is on, and a range is not used while maintaining; it applies once you run 'batterycharging off' or 'to N'."
+      echo "Maintain is on and a range is not used while maintaining; it applies once you run 'batterycharging off' or 'to N'."
     else
       running || echo "No hold is active right now; this applies once you run 'batterycharging off' or 'to N'."
     fi
