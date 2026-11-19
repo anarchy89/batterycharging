@@ -1,5 +1,28 @@
 # batterycharging
 
+Stop your MacBook from charging while it is plugged in, on macOS 27 and macOS 26.7 or later.
+
+With charging switched off, the Mac runs from the wall and the battery just sits there, which is as good as taking the battery out. On older Intel MacBooks you could do this by covering the middle pin of the MagSafe charger with tape. Later, tools did it in software by switching off charging in the SMC. The firmware that ships with macOS 27 and macOS 26.7 no longer allows that, so those tools stopped working. batterycharging gets as close as it can through macOS's own charge limit instead. See [Why I made this](#why-i-made-this).
+
+`batterycharging off` holds the battery at its current level. The Mac runs on wall power and the battery is never charged back up; if you use the Mac unplugged, the hold accepts the lower level. On top of that you can charge to a level you choose, keep the battery in a range or maintain it at a fixed level.
+
+It is one small bash script for Apple silicon MacBooks with nothing else to install.
+
+## What it does
+
+- Stops charging at any level, not only at 80% and above.
+- Leaves the battery alone while the Mac runs on wall power, so it is not topped up again and again.
+- Follows the battery down when you use the Mac unplugged instead of charging it back up.
+- Charges to a level you choose and holds there (`to N`).
+- Keeps the battery between a low and a high value (`range`).
+- Keeps the battery at a fixed level if you prefer that and accept microcharging (`maintain`).
+- Shows what is set and what to run next (`status`) and the real current at the battery, which the menu bar does not show (`dischargecheck`).
+- Puts your original charge limit back with one command (`on`).
+- Updates itself (`--update`).
+- Is one readable bash script with nothing else to install.
+
+Status: tested on an M3 MacBook Air on macOS 27.2. `maintain` has not been tried on a real Mac yet. Please [report problems](https://github.com/anarchy89/batterycharging/issues).
+
 ## Requirements
 
 - An Apple Silicon MacBook on **macOS 27+** or **macOS 26.7+**
@@ -101,6 +124,7 @@ batterycharging restart # restart a running hold after an update; the charge lim
 
 ## Contents
 
+- [What it does](#what-it-does)
 - [Requirements](#requirements)
 - [Installation](#installation)
   - [By hand](#by-hand)

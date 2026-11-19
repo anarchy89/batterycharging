@@ -132,8 +132,9 @@ batterycharging dischargecheck  # how much current is flowing out of the battery
 
   <h2>Why it exists</h2>
   <p>I used to simply switch charging off: with the charger connected the Mac ran from the wall and the battery just sat there, as good as taking it out. macOS no longer allows that, so <code>batterycharging off</code> is my attempt to get as close to it as I can. The rest is extras.</p>
+  <p>On older Intel MacBooks you could do this by covering the middle pin of the MagSafe charger with tape. Later, tools did it in software by switching off charging in the SMC.</p>
   <p>Tools such as <code>battery</code> stop charging by writing the SMC key <code>CHTE</code>. The firmware that ships with macOS 27 and the macOS 26.7 update no longer has that key, so those writes fail. Apple's replacement interface only accepts callers with a private entitlement that third-party tools cannot get.</p>
-  <p>batterycharging drives macOS's own Manual Charge Limit instead, the feature behind System Settings, Battery, Charge Limit. System Settings offers 80% to 100%, but the setting underneath accepts any value from 1 to 100. The firmware then stops charging at that limit, including while the Mac sleeps.</p>
+  <p>batterycharging drives macOS's own Manual Charge Limit instead, the feature behind System Settings, Battery, Charge Limit. System Settings offers 80-100%, but the setting underneath accepts any value from 1 to 100. The firmware then stops charging at that limit, including while the Mac sleeps.</p>
 
   <h2>What it does</h2>
   <ul>
