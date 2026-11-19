@@ -71,6 +71,19 @@ batterycharging range off    # turn it off
 - **You are told when it is on.** While `range` is set, `off` and `to N` print a warning that the refill is active, including when a hold is already running. Run `batterycharging range off` first if you want a hold that never charges back up.
 - The low value also applies to a hold you start below it: with `range` set, `batterycharging off` at 15% charges up to 60% and holds there.
 
+### What the charger light tells you
+
+If you charge with a MagSafe cable, the light on its connector shows which state the Mac is in:
+
+| MagSafe light | State | When you see it |
+|---|---|---|
+| **Green** | Drawing power from the wall, battery not charging | During a hold (`off`, or `to N` once it has reached its level), or when the battery is full |
+| **Orange** | Charging the battery | After `batterycharging on`, while `to N` is charging up, or while a `range` is charging back up to its high value |
+
+So after `batterycharging off` the light turns green even though the battery is not full: the Mac runs on wall power and leaves the battery alone. When a range kicks in at its low value, the light turns orange until the high value is reached, then green again.
+
+The light can take a few seconds to change. USB-C chargers have no light; use `batterycharging status` instead, which shows `not charging` or `charging` on its Battery line.
+
 ## Requirements
 
 - An Apple Silicon MacBook on **macOS 27+** or **macOS 26.7+**
