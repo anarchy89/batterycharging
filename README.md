@@ -39,7 +39,7 @@ After writing them, the script posts the Darwin notification `com.apple.smartcha
 4. You will notice the charging cable light should turn green (means it thinks its fully charged), if you look for the icon at the top right, it will say power source power adapter and if you open settings / battery it will say Charged to 0% limit.
 
 > [!WARNING]
-> A hold never charges the battery back up. Every drop is permanent until you run `batterycharging on`: slow self-discharge while plugged in, and normal use whenever you unplug. Left long enough, the battery will drain to 0%. Keep an eye on the level and run `batterycharging on` yourself when it gets low, or set [`range`](#how-range-works) to recharge automatically. The same applies to the hold after `to N`.
+> A hold never charges the battery back up. Every drop is permanent until you run `batterycharging on`: slow self-discharge while plugged in, and normal use whenever you unplug. Left long enough, the battery will drain to 0%. Keep an eye on the level and run `batterycharging on` yourself when it gets low, or set [`range`](#how-range-works) to recharge automatically when it gets to the lower limit. The same applies to the hold after `to N`.
 
 ### How `to N` works
 
@@ -156,8 +156,8 @@ Run `batterycharging on` first, as shown. If the script is removed while a hold 
 batterycharging off
 # Password: ****
 # Charging off: holding at 72%. Charge can only go down until 'batterycharging on'.
-# Warning: left like this, the battery will eventually drain to 0%. Run 'batterycharging on'
-# when it gets low, or set 'batterycharging range' to recharge automatically.
+# Warning: left like this, the battery will eventually drain to 0%. Run 'batterycharging on' when it
+# gets low, or set 'batterycharging range' to recharge automatically when it gets to the lower limit.
 
 batterycharging on
 # Charging on: previous charge limit restored.
