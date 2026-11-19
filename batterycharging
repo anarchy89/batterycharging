@@ -2,6 +2,8 @@
 # batterycharging off  -> stop charging: freeze at current %, follow it down, never charge up
 # batterycharging to N -> charge up to N%, then hold there exactly like 'off'
 # batterycharging on   -> resume charging: stop holding and restore your previous charge limit
+# batterycharging maintain N -> keep the battery at N%: macOS charges it back up when it falls below
+#                         (microcharging) and runs from the battery when it is above. No background loop
 # batterycharging range [LOW HIGH] -> opt in (set once): while holding, if the battery falls below
 #                         LOW% (default 40), charge back up to HIGH% (default 60), then hold again;
 #                         the two numbers can be given in either order
@@ -11,11 +13,11 @@
 # batterycharging dischargecheck -> show how much current is flowing out of (or into) the battery right now
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.12
+VERSION=1.0.13
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
-PID="$DIR/pid"; SAVED="$DIR/saved"; RANGE="$DIR/range"
+PID="$DIR/pid"; SAVED="$DIR/saved"; RANGE="$DIR/range"; MAINTAIN="$DIR/maintain"
 
 pct()     { pmset -g batt | grep -Eo '[0-9]+%' | head -1 | tr -d '%'; }
 running() { [[ -f "$PID" ]] && ps -p "$(cat "$PID")" >/dev/null 2>&1; }
@@ -23,6 +25,10 @@ setlim()  {   # runs as root
   defaults write $D MCLFeatureState -int 1
   defaults write $D mclLimitValue -int "$1"
   notifyutil -p com.apple.smartcharging.defaultschanged
+}
+saveorig() {   # runs as root: remember the charge limit to put back on 'on', once
+  [[ -f "$SAVED" ]] || echo "$(defaults read $D MCLFeatureState 2>/dev/null || echo none) \
+$(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
 }
 warn()    {   # a hold never charges back up unless 'range' is set
   if [[ -f "$RANGE" ]] && read -r low high < "$RANGE"; then
@@ -78,6 +84,9 @@ case "$1" in
     echo "Run 'batterycharging status' to see what is set."
     ;;
   restart)
+    if ! running && [[ -f "$MAINTAIN" ]]; then
+      echo "Maintain is on and has no background loop, so there is nothing to restart."; exit 0
+    fi
     running || { echo "No hold is running. Start one with 'batterycharging off' or 'to N'."; exit 1; }
     sudo -v || exit 1
     # a hold that is still charging up to a target has a limit well above the battery level: keep that target
@@ -137,6 +146,7 @@ case "$1" in
       if [[ "$st" == 1 ]]; then was="$sl% charge limit"; else was="no charge limit (100%)"; fi
     fi
     low=; high=; [[ -f "$RANGE" ]] && read -r low high < "$RANGE"
+    mt=; ! running && [[ -f "$MAINTAIN" ]] && mt=$(cat "$MAINTAIN")
     echo
     echo "batterycharging $VERSION"
     echo "  Battery:       ${p:-?}%, on ${src:-unknown power}${chg:+, $chg}"
@@ -148,15 +158,24 @@ case "$1" in
       else
         echo "  Hold:          on, the limit follows the battery down, unless range is on (see Range for its limits)"
       fi
+    elif [[ -n "$mt" ]]; then
+      echo "  Hold:          off, maintain is on instead"
     elif [[ -f "$SAVED" ]]; then
       echo "  Hold:          STOPPED, but the limit it set is still in place"
     else
       echo "  Hold:          off, macOS charges normally"
     fi
-    if [[ -n "$high" ]]; then
+    if [[ -n "$high" && -n "$mt" ]]; then
+      echo "  Range:         set ($low% -> $high%), not used while maintaining"
+    elif [[ -n "$high" ]]; then
       echo "  Range:         on, below $low% a hold charges back up to $high%"
     else
       echo "  Range:         off"
+    fi
+    if [[ -n "$mt" ]]; then
+      echo "  Maintain:      on, macOS keeps the battery at $mt% and charges it back up when it falls below (microcharging)"
+    else
+      echo "  Maintain:      off"
     fi
     [[ -n "$was" ]] && echo "  'on' restores: $was"
     echo
@@ -173,6 +192,10 @@ case "$1" in
         echo "  batterycharging range      recharge to 60% whenever a hold falls below 40%"
         echo "  ! Without range, this hold will eventually drain the battery to 0%."
       fi
+    elif [[ -n "$mt" ]]; then
+      echo "  batterycharging on           back to normal charging${was:+ ($was)}"
+      echo "  batterycharging off          hold at the current level without charging back up"
+      echo "  batterycharging maintain N   keep the battery at a different level"
     elif [[ -f "$SAVED" ]]; then
       echo "  ! The hold's background loop is not running (it stops at a restart), so the limit no longer"
       echo "    follows the battery down and range is not working. The Mac will not charge past $limit."
@@ -182,6 +205,7 @@ case "$1" in
     else
       echo "  batterycharging off        stop charging and hold at the current level"
       echo "  batterycharging to N       charge up to N%, then hold there"
+      echo "  batterycharging maintain N keep the battery at N% (allows microcharging)"
       if [[ -n "$high" ]]; then
         echo "  batterycharging range off  remove the saved range"
       else
@@ -206,6 +230,28 @@ case "$1" in
       echo "Already at $(pct)% (>= $2%): holding here. Charge can only go down until 'batterycharging on'."
     fi
     warn
+    ;;
+  maintain)
+    [[ "$2" =~ ^[0-9]+$ ]] && n=$((10#$2)) && (( n >= 1 && n <= 100 )) \
+      || { echo "usage: batterycharging maintain <1-100>"; exit 1; }
+    p=$(pct)
+    if [[ -n "$p" ]] && (( p - n >= 10 )) && [[ -t 0 ]]; then
+      echo "The battery is at $p%. To get down to $n% the Mac will run from the battery, even on the charger."
+      echo "That is $((p - n)) points and can take a long time."
+      read -r -p "Go ahead? [y/N] " ans || ans=n
+      case "$ans" in y|Y|yes|Yes|YES) ;; *) echo "Nothing was changed."; exit 0 ;; esac
+    fi
+    sudo "$0" _maintain "$n" || exit 1
+    echo "Maintaining at $n%. macOS keeps the battery there by itself, also after a restart."
+    echo "Warning: this allows microcharging. Each time the battery falls below $n%, macOS charges it back up."
+    echo "Those small top-ups are what 'batterycharging off' avoids."
+    if [[ -n "$p" ]] && (( p > n )); then
+      echo "The battery is at $p%, above $n%: the Mac runs from the battery, even on the charger, until it is down to $n%."
+    elif [[ -n "$p" ]] && (( p < n )); then
+      echo "The battery is at $p%, below $n%: it charges up to $n% now."
+    fi
+    [[ -f "$RANGE" ]] && echo "Your range is not used while maintaining; it applies again to a hold ('off' or 'to N')."
+    echo "To stop: 'batterycharging on' for normal charging, or 'batterycharging off' to hold without charging."
     ;;
   on)
     sudo "$0" _restore && echo "Charging on: previous charge limit restored."
@@ -238,7 +284,7 @@ case "$1" in
     echo "Range on: while holding, below $low% it charges back up to $high%, then holds again."
     p=$(pct)
     if [[ -n "$p" ]] && (( p > high )); then
-      echo "Note: the battery is at $p%, above this range. Nothing discharges it, so it is not brought down"
+      echo "Note: the battery is at $p%, above this range. A hold does not discharge it, so it is not brought down"
       echo "to $high%: it drifts down by itself. Once it falls below $low% it charges to $high%, and from then on it"
       echo "stays between $low% and $high%."
       echo "To get into the range sooner, unplug the charger until the battery is down to $high% or lower, then"
@@ -250,7 +296,11 @@ case "$1" in
         echo "Note: the battery is at $p%, below this range. It charges to $high% once a hold is started."
       fi
     fi
-    running || echo "No hold is active right now; this applies once you run 'batterycharging off' or 'to N'."
+    if ! running && [[ -f "$MAINTAIN" ]]; then
+      echo "Maintain is on, and a range is not used while maintaining; it applies once you run 'batterycharging off' or 'to N'."
+    else
+      running || echo "No hold is active right now; this applies once you run 'batterycharging off' or 'to N'."
+    fi
     ;;
   _range)     # root
     mkdir -p "$DIR" && echo "$2 $3" > "$RANGE"
@@ -259,8 +309,8 @@ case "$1" in
     mkdir -p "$DIR"
     [[ -f "$PID" ]] && kill "$(cat "$PID")" 2>/dev/null   # replace any running hold
     echo $$ > "$PID"
-    [[ -f "$SAVED" ]] || echo "$(defaults read $D MCLFeatureState 2>/dev/null || echo none) \
-$(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
+    saveorig
+    rm -f "$MAINTAIN"      # a hold takes over from maintain
     hold=$(pct); [[ -z "$hold" ]] && exit 1
     target=$2
     while :; do
@@ -311,7 +361,14 @@ $(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
       # Only removing our settings left some Macs not charging until a restart.
       setlim 100
     fi
-    rm -f "$SAVED"
+    rm -f "$SAVED" "$MAINTAIN"
     ;;
-  *) echo "usage: batterycharging off|on|to <percent>|range [<low> <high>]|range off|status|restart|dischargecheck|--update|--version"; exit 1 ;;
+  _maintain)  # root: a fixed limit, no loop
+    mkdir -p "$DIR"
+    [[ -f "$PID" ]] && kill "$(cat "$PID")" 2>/dev/null; rm -f "$PID"   # maintain takes over from a hold
+    saveorig
+    echo "$2" > "$MAINTAIN"
+    setlim "$2"
+    ;;
+  *) echo "usage: batterycharging off|on|to <percent>|maintain <percent>|range [<low> <high>]|range off|status|restart|dischargecheck|--update|--version"; exit 1 ;;
 esac
