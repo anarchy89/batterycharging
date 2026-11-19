@@ -10,11 +10,11 @@
 # batterycharging status   -> show the battery, the charge limit, the hold and range, and what to run next
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.7
+VERSION=1.0.8
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
-PID="$DIR/pid"; SAVED="$DIR/saved"; RANGE="$DIR/range"; OLDAUTO="$DIR/auto"   # OLDAUTO: setting left by the old 'auto' command, no longer used
+PID="$DIR/pid"; SAVED="$DIR/saved"; RANGE="$DIR/range"
 
 pct()     { pmset -g batt | grep -Eo '[0-9]+%' | head -1 | tr -d '%'; }
 running() { [[ -f "$PID" ]] && ps -p "$(cat "$PID")" >/dev/null 2>&1; }
@@ -23,12 +23,6 @@ setlim()  {   # runs as root
   defaults write $D mclLimitValue -int "$1"
   notifyutil -p com.apple.smartcharging.defaultschanged
 }
-oldauto() {   # up to 1.0.6 the range was set with 'auto' and kept in another file; it has to be set again
-  [[ -f "$OLDAUTO" && ! -f "$RANGE" ]] || return 0
-  read -r ol oh < "$OLDAUTO"
-  echo "Warning: your old 'auto' setting ($ol% -> $oh%) is no longer used. 'auto' is now called 'range',"
-  echo "and the range has to be set once more. To keep the same values, run: batterycharging range $ol $oh"
-}
 warn()    {   # a hold never charges back up unless 'range' is set
   if [[ -f "$RANGE" ]] && read -r low high < "$RANGE"; then
     echo "Warning: range is on: below $low% it charges back up to $high%, then holds again."
@@ -36,7 +30,6 @@ warn()    {   # a hold never charges back up unless 'range' is set
   else
     echo "Warning: left like this, the battery will eventually drain to 0%. Run 'batterycharging on'"
     echo "when it gets low, or set 'batterycharging range' to recharge automatically."
-    oldauto
   fi
 }
 
@@ -69,7 +62,6 @@ case "$1" in
     ;;
   _updated)   # run by --update from the newly installed file; $2 is the version that was replaced
     echo "Updated batterycharging ${2:-?} to $VERSION."
-    oldauto
     if running; then
       echo "A hold is still running the old version."
       ans=n
@@ -148,7 +140,6 @@ case "$1" in
     [[ -n "$was" ]] && echo "  'on' restores: $was"
     echo
     echo "What you can do:"
-    oldauto | sed 's/^/  ! /'
     if running; then
       [[ "$0" -nt "$PID" ]] && \
         echo "  ! This hold was started before the script was last updated. To use the new version," && \
@@ -178,7 +169,7 @@ case "$1" in
     fi
     ;;
   off)
-    running && { echo "Already holding."; [[ -f "$RANGE" ]] && warn; oldauto; exit 0; }
+    running && { echo "Already holding."; [[ -f "$RANGE" ]] && warn; exit 0; }
     sudo -v || exit 1
     sudo nohup "$0" _loop >/dev/null 2>&1 &
     echo "Charging off: holding at $(pct)%. Charge can only go down until 'batterycharging on'."
@@ -202,17 +193,9 @@ case "$1" in
       echo "Run 'batterycharging range off' to remove it."
     fi
     ;;
-  auto)
-    echo "'auto' is an old command and no longer works. It is now called 'range':"
-    echo "  batterycharging range                below 40%, charge back up to 60%"
-    echo "  batterycharging range <low> <high>   your own values"
-    echo "  batterycharging range off            turn it off"
-    oldauto
-    exit 1
-    ;;
   range)
     if [[ "$2" == off ]]; then
-      sudo rm -f "$RANGE" "$OLDAUTO" && echo "Range off."
+      sudo rm -f "$RANGE" && echo "Range off."
       exit
     fi
     usage="usage: batterycharging range [<low> <high>] | range off   (default 40 60, numbers in either order)"
@@ -248,8 +231,8 @@ case "$1" in
     fi
     running || echo "No hold is active right now; this applies once you run 'batterycharging off' or 'to N'."
     ;;
-  _range)     # root; also clears the setting left by the old 'auto' command
-    mkdir -p "$DIR" && echo "$2 $3" > "$RANGE" && rm -f "$OLDAUTO"
+  _range)     # root
+    mkdir -p "$DIR" && echo "$2 $3" > "$RANGE"
     ;;
   _loop)      # root: save original once, optionally charge up to $2, then ratchet down only
     mkdir -p "$DIR"
