@@ -6,6 +6,7 @@ A tiny bash script to **stop your MacBook from charging** while it's plugged in 
 batterycharging off   # stop charging: hold at the current %, never charge up
 batterycharging to 65 # charge up to 65%, then hold there just like 'off'
 batterycharging auto  # keep it in a range: below 40%, charge back up to 60%, then hold again
+batterycharging auto 30 65 # the same with your own range: below 30%, charge back up to 65%
 batterycharging on    # resume charging: restore your previous charge limit
 
 batterycharging status  # what is set right now and what to run next
