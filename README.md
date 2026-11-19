@@ -1,14 +1,14 @@
 # batterycharging
 
-A tiny bash script to **stop your MacBook from charging** while it's plugged in, for **macOS 27+** (and macOS 26.7+), where older tools no longer work.
+A tiny bash script to **stop your MacBook from charging** while it's plugged in and **keep the battery in a range you choose**, for **macOS 27+** (and macOS 26.7+), where older tools no longer work.
 
 ```bash
 batterycharging off   # stop charging: hold at the current %, never charge up
 batterycharging to 65 # charge up to 65%, then hold there just like 'off'
+batterycharging auto  # keep it in a range: below 40%, charge back up to 60%, then hold again
 batterycharging on    # resume charging: restore your previous charge limit
 
-batterycharging auto  # optional, set once: while holding, below 40% charge back up to 60%
-batterycharging status # what is set right now and what to run next
+batterycharging status  # what is set right now and what to run next
 batterycharging restart # restart a running hold after an update; the charge limit stays put
 ```
 
@@ -38,7 +38,7 @@ After writing them, the script posts the Darwin notification `com.apple.smartcha
 4. You will notice the charging cable light should turn green (means it thinks its fully charged), if you look for the icon at the top right, it will say power source power adapter and if you open settings / battery it will say Charged to 0% limit.
 
 > [!WARNING]
-> A hold never charges the battery back up. Every drop is permanent until you run `batterycharging on`: slow self-discharge while plugged in, and normal use whenever you unplug. Left long enough, the battery will drain to 0%. Keep an eye on the level and run `batterycharging on` yourself when it gets low, or set [`auto`](#how-auto-works-optional) to recharge automatically. The same applies to the hold after `to N`.
+> A hold never charges the battery back up. Every drop is permanent until you run `batterycharging on`: slow self-discharge while plugged in, and normal use whenever you unplug. Left long enough, the battery will drain to 0%. Keep an eye on the level and run `batterycharging on` yourself when it gets low, or set [`auto`](#how-auto-works) to recharge automatically. The same applies to the hold after `to N`.
 
 ### How `to N` works
 
@@ -49,9 +49,9 @@ For when the battery has dropped lower than you'd like (say 30%) and you want to
 
 `on` Stops the loop and restores the settings it saved (it will restore it to your previous limit of 80,85,etc.)
 
-### How `auto` works (optional)
+### How `auto` works
 
-By default a hold only ever follows the battery down, all the way to 0% if you let it. `auto` is an opt-in safety net: you set it once and it stays set until you turn it off.
+On its own, a hold only ever follows the battery down, all the way to 0% if you let it. `auto` turns it into a range: when the battery falls below a low value, it charges back up to a high value and holds again. You set it once and it stays set until you turn it off, so a Mac that lives on the charger looks after itself.
 
 ```bash
 batterycharging auto        # below 40%, charge back up to 60%, then hold again
@@ -59,7 +59,7 @@ batterycharging auto 25 70  # same, with your own low and high values
 batterycharging auto off    # turn it off
 ```
 
-- **It only acts during a hold.** `off`, `to N` and `on` work exactly as before until you run `auto`. Once it's set, any hold started with `off` or `to N` checks the battery every 60 seconds and, if it is below the low value, does the same thing as `batterycharging to 60`. After the charge-up it goes back to holding.
+- **It works together with a hold.** `auto` does not start one; start a hold with `off` or `to N` as usual. Without `auto`, those commands work exactly as described above. Once it's set, any hold started with `off` or `to N` checks the battery every 60 seconds and, if it is below the low value, does the same thing as `batterycharging to 60`. After the charge-up it goes back to holding.
 - **You can set it at any time.** A hold that is already running picks it up within a minute; there is no need to restart it.
 - **Unplugged:** if the battery drops below the low value while unplugged, the limit is raised straight away and the Mac charges to the high value when you plug back in.
 - **`on` keeps the setting.** It stops the hold as usual, and the auto setting applies again to your next hold. `on` reminds you of this.
