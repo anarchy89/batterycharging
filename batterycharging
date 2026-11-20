@@ -13,7 +13,7 @@
 # batterycharging dischargecheck -> show how much current is flowing out of (or into) the battery right now
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.18
+VERSION=1.0.19
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -152,11 +152,23 @@ case "$1" in
     echo
     echo "batterycharging $VERSION"
     echo "  Battery:       ${p:-?}%, on ${src:-unknown power}${chg:+, $chg}"
-    # current limit: where the battery is kept right now. Upper and lower limit: the range, if one is set
-    echo "  Current limit: $limit"
+    # charging up: the limit is well above the battery or a little above it while the Mac is charging
+    cu=; running && [[ -n "$lim" && -n "$p" ]] && (( lim > p )) && { (( lim - p > 2 )) || [[ "$chg" == charging* ]]; } && cu=1
+    # current limit: where the battery is kept right now, with a note on what it will do next.
+    # Upper and lower limit: the range, if one is set
+    note=
+    if [[ -z "$lim" ]]; then note=
+    elif [[ -n "$cu" && -n "$high" && "$lim" == "$high" ]]; then note=" (charging up to the upper limit)"
+    elif [[ -n "$cu" ]]; then note=" (charging up to this, then follows the battery down)"
+    elif running && [[ -n "$high" ]]; then note=" (follows the battery down until the lower limit)"
+    elif running; then note=" (follows the battery down)"
+    elif [[ -n "$mt" ]]; then note=" (kept here by maintain)"
+    elif [[ -f "$SAVED" ]]; then note=" (left in place by a hold that stopped)"
+    fi
+    echo "  Current limit: $limit$note"
     if [[ -n "$high" ]] && running; then
-      echo "  Upper limit:   $high% (a recharge stops here)"
-      echo "  Lower limit:   $low% (a recharge starts below this)"
+      echo "  Upper limit:   $high% (after a recharge, the current limit starts again from here)"
+      echo "  Lower limit:   $low% (below this, it charges back up to the upper limit)"
     elif [[ -n "$high" && -z "$mt" ]]; then
       echo "  Upper limit:   $high% (not active: no hold is running)"
       echo "  Lower limit:   $low% (not active: no hold is running)"
@@ -168,8 +180,7 @@ case "$1" in
       echo "  Lower limit:   range off"
     fi
     if running; then
-      # charging up: the limit is well above the battery or a little above it while the Mac is charging
-      if [[ -n "$lim" && -n "$p" ]] && (( lim > p )) && { (( lim - p > 2 )) || [[ "$chg" == charging* ]]; }; then
+      if [[ -n "$cu" ]]; then
         echo "  Hold:          on, charging up to $lim% first, then holding"
       else
         echo "  Hold:          on, the limit follows the battery down, unless range is on (see Range for its limits)"
