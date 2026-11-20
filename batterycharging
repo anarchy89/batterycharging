@@ -13,7 +13,7 @@
 # batterycharging dischargecheck -> show how much current is flowing out of (or into) the battery right now
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.17
+VERSION=1.0.18
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -160,9 +160,12 @@ case "$1" in
     elif [[ -n "$high" && -z "$mt" ]]; then
       echo "  Upper limit:   $high% (not active: no hold is running)"
       echo "  Lower limit:   $low% (not active: no hold is running)"
+    elif [[ -n "$high" ]]; then
+      echo "  Upper limit:   not used while maintaining"
+      echo "  Lower limit:   not used while maintaining"
     else
-      echo "  Upper limit:"
-      echo "  Lower limit:"
+      echo "  Upper limit:   range off"
+      echo "  Lower limit:   range off"
     fi
     if running; then
       # charging up: the limit is well above the battery or a little above it while the Mac is charging
