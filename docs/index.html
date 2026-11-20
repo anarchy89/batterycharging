@@ -98,10 +98,11 @@
   <p class="lead">batterycharging holds the battery where it is, charges it to a level you pick, keeps it in a range you choose or maintains it at a fixed level. It is one small bash script for Apple silicon MacBooks, made for the macOS versions where older charge limiters stopped working.</p>
 
   <pre>$ batterycharging status
-batterycharging 1.0.16
+batterycharging 1.0.17
   Battery:       58%, on AC Power, not charging
-  Charge limit:  58%
-  Lower limit:   40% (from the range: below it, charges back up to 60%)
+  Current limit: 58%
+  Upper limit:   60% (a recharge stops here)
+  Lower limit:   40% (a recharge starts below this)
   Hold:          on, the limit follows the battery down, unless range is on (see Range for its limits)
   Range:         on, below 40% a hold charges back up to 60%
   Maintain:      off

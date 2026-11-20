@@ -13,7 +13,7 @@
 # batterycharging dischargecheck -> show how much current is flowing out of (or into) the battery right now
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.16
+VERSION=1.0.17
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -128,7 +128,7 @@ case "$1" in
     echo "macOS refreshes this reading about every half minute, so the three lines are often the same."
     echo "During a hold it should be 0 mA. After the battery level drops a point it can show a negative"
     echo "number for a while: wait about a minute after the drop, check with 'batterycharging status' that"
-    echo "Battery and Charge limit show the same percentage, then run this again."
+    echo "Battery and Current limit show the same percentage, then run this again."
     ;;
   status)
     batt=$(pmset -g batt); p=$(pct)
@@ -152,12 +152,16 @@ case "$1" in
     echo
     echo "batterycharging $VERSION"
     echo "  Battery:       ${p:-?}%, on ${src:-unknown power}${chg:+, $chg}"
-    echo "  Charge limit:  $limit"
+    # current limit: where the battery is kept right now. Upper and lower limit: the range, if one is set
+    echo "  Current limit: $limit"
     if [[ -n "$high" ]] && running; then
-      echo "  Lower limit:   $low% (from the range: below it, charges back up to $high%)"
+      echo "  Upper limit:   $high% (a recharge stops here)"
+      echo "  Lower limit:   $low% (a recharge starts below this)"
     elif [[ -n "$high" && -z "$mt" ]]; then
+      echo "  Upper limit:   $high% (not active: no hold is running)"
       echo "  Lower limit:   $low% (not active: no hold is running)"
     else
+      echo "  Upper limit:"
       echo "  Lower limit:"
     fi
     if running; then

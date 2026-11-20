@@ -183,7 +183,7 @@ That does not mean the battery is drained while it sits on the charger. During a
 - **The Mac needs more power than the charger gives**, for example heavy work on a small charger. The battery covers the difference.
 - **Slow self-discharge** over a long time on the charger. This is small.
 
-A hold also never leaves its limit below the battery level, because macOS answers that by running the Mac from the battery until the level is back down, even on the charger. This matters in two cases: when you run `batterycharging off` while the Mac is charging, the charge takes a minute or so to stop and the battery can end up a point above where the hold began; and the percentage macOS reports can wobble by a point. In both, the hold raises its limit to match and holds there. It allows two points at most above the lowest level the hold has been at, so it cannot creep upward. That does not charge the battery; it only avoids draining it. You can check with `batterycharging status` that the Battery and Charge limit lines show the same number and with `batterycharging dischargecheck` that the current is 0 mA.
+A hold also never leaves its limit below the battery level, because macOS answers that by running the Mac from the battery until the level is back down, even on the charger. This matters in two cases: when you run `batterycharging off` while the Mac is charging, the charge takes a minute or so to stop and the battery can end up a point above where the hold began; and the percentage macOS reports can wobble by a point. In both, the hold raises its limit to match and holds there. It allows two points at most above the lowest level the hold has been at, so it cannot creep upward. That does not charge the battery; it only avoids draining it. You can check with `batterycharging status` that the Battery and Current limit lines show the same number and with `batterycharging dischargecheck` that the current is 0 mA.
 
 What a hold does in each situation:
 
@@ -229,7 +229,7 @@ batterycharging range off    # turn it off
 - **It does not bring the battery down into the range.** A hold does not discharge the battery; it only allows the level to drop instead of charging it back up. So a range only acts at the bottom. If you set `batterycharging range 25 65` while the battery is at 90%, it stays near 90% and drifts down by itself; it is not taken down to 65%. Once it falls below 25% it charges to 65% and from then on it stays between 25% and 65%. If you want to be in the range sooner, unplug the charger and use the Mac until the battery is down to 65% or lower, then plug it back in; the hold picks up from there. Waiting works just as well. The command tells you when the battery is above or below the range you set.
 - **It starts a hold if none is running.** You do not need to run `off` first: `batterycharging range 40 60` stops charging and holds at the current level, with the range in force. If a hold is already running, it only sets the range. Either way the hold checks the battery every 60 seconds and, if it is below the low value, does the same thing as `batterycharging to 60`. After the charge-up it goes back to holding. Before version 1.0.16, `range` only saved the values and you had to start the hold yourself.
 - **`range off` removes the lower limit, not the hold.** The hold carries on and only follows the battery down. Run `batterycharging on` to go back to normal charging.
-- **`status` shows both limits.** The Charge limit line is the level the hold is at and the Lower limit line is the low value of your range. With no range, the Lower limit line is empty.
+- **`status` shows three limits.** Current limit is the level the battery is being kept at right now. Upper limit and Lower limit are the high and low values of your range: a recharge starts below the lower limit and stops at the upper limit. The current limit can be above the upper limit, because a hold does not bring the battery down; it gets there by drifting down. With no range, the Upper limit and Lower limit lines are empty.
 - **Either order works.** `batterycharging range 25 70` and `batterycharging range 70 25` set the same range: the smaller number is always the low value and the larger one the high value.
 - **Invalid values are refused with an error and nothing is changed.** Both values must be whole numbers from 1 to 100 and different from each other. A negative number, 0, a number above 100, a decimal such as `12.5`, two equal numbers such as `50 50` or only one number is rejected and any range you set earlier stays in force.
 - **You can set it at any time.** A hold that is already running picks it up within a minute; there is no need to restart it. That includes a recharge in progress: change the range and the charge follows the new high value and `range off` stops it where it is.
@@ -332,7 +332,7 @@ A negative number means the Mac is running from the battery, even if the menu ba
 During a hold it should read `0 mA`. Right after the battery level drops a point it can show a negative number for a while. To check that it has settled:
 
 1. Wait about a minute after the drop.
-2. Make sure a hold is on and `batterycharging status` shows the same percentage on its Battery and Charge limit lines.
+2. Make sure a hold is on and `batterycharging status` shows the same percentage on its Battery and Current limit lines.
 3. Run `batterycharging dischargecheck`. It should be back to `0 mA`.
 
 macOS only refreshes the reading about every half minute, so the three lines are often identical; if it still shows a negative number, wait and run it again.
@@ -341,10 +341,11 @@ To check what's set right now:
 
 ```bash
 batterycharging status
-# batterycharging 1.0.16
+# batterycharging 1.0.17
 #   Battery:       58%, on AC Power, not charging
-#   Charge limit:  58%
-#   Lower limit:   40% (from the range: below it, charges back up to 60%)
+#   Current limit: 58%
+#   Upper limit:   60% (a recharge stops here)
+#   Lower limit:   40% (a recharge starts below this)
 #   Hold:          on, the limit follows the battery down, unless range is on (see Range for its limits)
 #   Range:         on, below 40% a hold charges back up to 60%
 #   Maintain:      off
