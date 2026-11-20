@@ -109,7 +109,7 @@ A tiny bash script to **stop your MacBook from charging** while it's plugged in 
 ```bash
 batterycharging off   # stop charging: hold at the current %, never charge up; if it drops, the limit follows it down
 batterycharging to 65 # charge up to 65%, then hold there just like 'off'
-batterycharging range  # keep it in a range: below 40%, charge back up to 60%, then hold again
+batterycharging range  # stop charging like 'off' and keep a range: below 40%, charge back up to 60%, then hold again
 batterycharging range 30 65 # the same with your own range: below 30%, charge back up to 65%
 batterycharging maintain 70 # keep it at 70%; macOS tops it back up when it falls below (microcharging)
 batterycharging on    # resume charging: restore your previous charge limit
@@ -217,7 +217,7 @@ For when the battery has dropped lower than you'd like (say 30%) and you want to
 
 ### How `range` works
 
-On its own, a hold only ever follows the battery down, all the way to 0% if you let it. `range` sets a low and a high value: when the battery falls below the low value, it charges back up to the high value and holds again. You set it once and it stays set until you turn it off, so a Mac that lives on the charger looks after itself.
+`batterycharging range` does what `batterycharging off` does and adds a lower limit. It stops charging and holds at the current level, exactly like `off`. On its own, a hold only ever follows the battery down, all the way to 0% if you let it. `range` sets a low and a high value: when the battery falls below the low value, it charges back up to the high value and holds again. You set it once and it stays set until you turn it off, so a Mac that lives on the charger looks after itself.
 
 ```bash
 batterycharging range        # below 40%, charge back up to 60%, then hold again
@@ -227,7 +227,9 @@ batterycharging range off    # turn it off
 ```
 
 - **It does not bring the battery down into the range.** A hold does not discharge the battery; it only allows the level to drop instead of charging it back up. So a range only acts at the bottom. If you set `batterycharging range 25 65` while the battery is at 90%, it stays near 90% and drifts down by itself; it is not taken down to 65%. Once it falls below 25% it charges to 65% and from then on it stays between 25% and 65%. If you want to be in the range sooner, unplug the charger and use the Mac until the battery is down to 65% or lower, then plug it back in; the hold picks up from there. Waiting works just as well. The command tells you when the battery is above or below the range you set.
-- **It works together with a hold.** `range` does not start one; start a hold with `off` or `to N` as usual. Without `range`, those commands work exactly as described above. Once it's set, any hold started with `off` or `to N` checks the battery every 60 seconds and, if it is below the low value, does the same thing as `batterycharging to 60`. After the charge-up it goes back to holding.
+- **It starts a hold if none is running.** You do not need to run `off` first: `batterycharging range 40 60` stops charging and holds at the current level, with the range in force. If a hold is already running, it only sets the range. Either way the hold checks the battery every 60 seconds and, if it is below the low value, does the same thing as `batterycharging to 60`. After the charge-up it goes back to holding. Before version 1.0.16, `range` only saved the values and you had to start the hold yourself.
+- **`range off` removes the lower limit, not the hold.** The hold carries on and only follows the battery down. Run `batterycharging on` to go back to normal charging.
+- **`status` shows both limits.** The Charge limit line is the level the hold is at and the Lower limit line is the low value of your range. With no range, the Lower limit line is empty.
 - **Either order works.** `batterycharging range 25 70` and `batterycharging range 70 25` set the same range: the smaller number is always the low value and the larger one the high value.
 - **Invalid values are refused with an error and nothing is changed.** Both values must be whole numbers from 1 to 100 and different from each other. A negative number, 0, a number above 100, a decimal such as `12.5`, two equal numbers such as `50 50` or only one number is rejected and any range you set earlier stays in force.
 - **You can set it at any time.** A hold that is already running picks it up within a minute; there is no need to restart it. That includes a recharge in progress: change the range and the charge follows the new high value and `range off` stops it where it is.
@@ -339,9 +341,10 @@ To check what's set right now:
 
 ```bash
 batterycharging status
-# batterycharging 1.0.13
+# batterycharging 1.0.16
 #   Battery:       58%, on AC Power, not charging
 #   Charge limit:  58%
+#   Lower limit:   40% (from the range: below it, charges back up to 60%)
 #   Hold:          on, the limit follows the battery down, unless range is on (see Range for its limits)
 #   Range:         on, below 40% a hold charges back up to 60%
 #   Maintain:      off
