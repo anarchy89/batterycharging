@@ -288,7 +288,7 @@ batterycharging off           # stop maintaining and hold at the current level, 
 `batterycharging maintain 70` keeps the battery at 70%. It sets the charge limit to that level and leaves it there and macOS does the rest:
 
 - when the battery falls below 70%, macOS charges it back up;
-- when the battery is above 70%, macOS runs the Mac from the battery, even on the charger, until it is down to 70%.
+- when the battery is above 70%, macOS runs the Mac from the battery, even on the charger, until it is down to 70% (allows discharging).
 
 > [!WARNING]
 > Maintain allows microcharging. Each time the battery falls below the level you set, macOS charges it back up, so the battery gets small top-ups again and again. Those top-ups are what `batterycharging off` avoids. Use `maintain` if you want the battery kept at a fixed level and accept that; use `off` if you want the battery left alone.
