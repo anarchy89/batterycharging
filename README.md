@@ -234,9 +234,9 @@ batterycharging range off    # turn it off
 - **Invalid values are refused with an error and nothing is changed.** Both values must be whole numbers from 1 to 100 and different from each other. A negative number, 0, a number above 100, a decimal such as `12.5`, two equal numbers such as `50 50` or only one number is rejected and any range you set earlier stays in force.
 - **You can set it at any time.** A hold that is already running picks it up within a minute; there is no need to restart it. That includes a recharge in progress: change the range and the charge follows the new high value and `range off` stops it where it is.
 - **Unplugged:** if the battery drops below the low value while unplugged, the limit is raised within a minute and the Mac charges to the high value when you plug back in.
-- **`on` keeps the setting.** It stops the hold as usual and the saved range applies again to your next hold. `on` reminds you of this.
-- **You are told when it is on.** While `range` is set, `off` and `to N` print a warning that the refill is active, including when a hold is already running. Run `batterycharging range off` first if you want a hold that never charges back up.
-- The low value also applies to a hold you start below it: with `range` set, `batterycharging off` at 15% charges up to 60% and holds there.
+- **`on` removes the range.** A range belongs to its hold. `batterycharging on` ends the hold, goes back to normal charging and removes the range with it. `batterycharging maintain N` does the same. To use a range again, run `batterycharging range` again; both commands print the exact line to type. Before version 1.0.20 the range stayed saved after `on`.
+- **You are told when it is on.** While a range is on, `off` and `to N` print a warning that the recharge is active. Run `batterycharging range off` first if you want a hold that never charges back up.
+- The low value also applies when you set a range with the battery below it: `batterycharging range` at 15% charges up to 60% and holds there.
 
 ### How `maintain` works
 
@@ -274,9 +274,9 @@ How it differs from a hold:
 | Battery is above the level | holds where it is | runs from the battery down to N% |
 | Left alone for a long time | drifts down, to 0% unless a `range` is set | stays at N% |
 | After a restart | the hold stops until you start a new one | keeps working; nothing needs to run |
-| `range` | recharges at the low value | not used |
+| `range` | recharges at the low value | removed when maintain starts |
 
-- **Switching:** `batterycharging off` or `to N` turns maintain off and starts a hold. `batterycharging maintain N` during a hold ends the hold. `batterycharging on` ends either and restores your previous charge limit.
+- **Switching:** `batterycharging off`, `to N` or `range` turns maintain off and starts a hold. `batterycharging maintain N` during a hold ends the hold and removes its range. `batterycharging on` ends either and restores your previous charge limit.
 - **Going down a long way:** if the battery is 10 points or more above the level, the command says how far it has to drop and asks before starting, because the Mac will be running from the battery the whole time.
 - **How often it tops up is not known.** I have not measured how far the battery has to fall before macOS charges it back up.
 
