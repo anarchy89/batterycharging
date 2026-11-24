@@ -1,7 +1,7 @@
 #!/bin/bash
 # batterycharging off  -> stop charging: freeze at current %, follow it down, never charge up
 # batterycharging to N -> charge up to N%, then hold there exactly like 'off'
-# batterycharging on   -> resume charging: stop holding and restore your previous charge limit
+# batterycharging on   -> resume charging: stop holding, restore your previous charge limit and remove a range
 # batterycharging maintain N -> keep the battery at N%: macOS charges it back up when it falls below
 #                         (microcharging) and runs from the battery when it is above. No background loop
 # batterycharging range [LOW HIGH] -> stop charging like 'off' and keep a range: if the battery falls below
@@ -13,7 +13,7 @@
 # batterycharging dischargecheck -> show how much current is flowing out of (or into) the battery right now
 # batterycharging --update  -> replace this script with the latest release, if that is newer
 # batterycharging --version -> print the version
-VERSION=1.0.20
+VERSION=1.0.21
 RELEASE="https://github.com/anarchy89/batterycharging/releases/latest/download/batterycharging"
 D=com.apple.smartcharging.topoffprotection
 DIR="/Library/Application Support/batterycharging"
@@ -32,6 +32,27 @@ saveorig() {   # runs as root: remember the charge limit to put back on 'on', on
   [[ -f "$SAVED" ]] || echo "$(defaults read $D MCLFeatureState 2>/dev/null || echo none) \
 $(defaults read $D mclLimitValue 2>/dev/null || echo 100)" > "$SAVED"
 }
+help()    {
+  cat <<HELP
+batterycharging $VERSION: stop a MacBook from charging while it is plugged in
+usage: batterycharging <command>
+
+  batterycharging off             stop charging: hold at the current level; if it drops, the limit follows it down
+  batterycharging to N            charge up to N%, then hold there
+  batterycharging range [L H]     stop charging and keep a range: below L% charge back up to H% (default 40 60)
+  batterycharging range off       remove the range; the hold carries on
+  batterycharging maintain N      keep the battery at N% (allows microcharging); removes a range
+  batterycharging on              back to normal charging: restores your charge limit and removes a range
+
+  batterycharging status          what is set right now and what to run next
+  batterycharging dischargecheck  how much current is flowing out of the battery right now
+  batterycharging restart         restart a running hold after an update
+  batterycharging --update        update to the latest release
+  batterycharging --version       print the version
+
+More: https://github.com/anarchy89/batterycharging
+HELP
+}
 warn()    {   # a hold never charges back up unless 'range' is set
   if [[ -f "$RANGE" ]] && read -r low high < "$RANGE"; then
     echo "Warning: range is on: below $low% it charges back up to $high%, then holds again."
@@ -43,6 +64,7 @@ warn()    {   # a hold never charges back up unless 'range' is set
 }
 
 case "$1" in
+  ""|help|--help|-h) help ;;
   --version) echo "batterycharging $VERSION" ;;
   --update)
     url=${BATTERYCHARGING_UPDATE_URL:-$RELEASE}    # the variable is an aid for testing
@@ -208,10 +230,14 @@ case "$1" in
       [[ "$0" -nt "$PID" ]] && \
         echo "  ! This hold was started before the script was last updated. To use the new version," && \
         echo "    run: batterycharging restart"
-      echo "  batterycharging on         back to normal charging${was:+ ($was)}"
+      if [[ -n "$high" ]]; then
+        echo "  batterycharging on         back to normal charging${was:+ ($was)}; also removes the range"
+      else
+        echo "  batterycharging on         back to normal charging${was:+ ($was)}"
+      fi
       echo "  batterycharging to N       charge up to N% now, then hold there"
       if [[ -n "$high" ]]; then
-        echo "  batterycharging range off  stop the recharging, so the hold only ever goes down"
+        echo "  batterycharging range off  remove the range only, so the hold only ever goes down"
       else
         echo "  batterycharging range      add a lower limit: recharge to 60% whenever it falls below 40%"
         echo "  ! Without range, this hold will eventually drain the battery to 0%."
@@ -391,5 +417,5 @@ case "$1" in
     rm -f "$RANGE"         # a range belongs to a hold
     setlim "$2"
     ;;
-  *) echo "usage: batterycharging off|on|to <percent>|maintain <percent>|range [<low> <high>]|range off|status|restart|dischargecheck|--update|--version"; exit 1 ;;
+  *) echo "Unknown command: $1"; echo; help; exit 1 ;;
 esac
